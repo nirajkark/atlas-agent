@@ -1,0 +1,28 @@
+1. Two tracks, your team owns DAQ
+DAQ (yours): LLM agents for live runtime systems — Run Control, Process Management, Configuration, Information Service, Error Reporting
+
+2. Your work is genuinely greenfield
+No prior MCP framework exists for the five live DAQ services — you're building the first one
+3. It's 5 separate agents, not 1 agent for everything
+One agent per service (5 total), each built on a shared MCP framework/pattern
+One LLM orchestration layer sits on top, routes the shifter's question to the right agent(s), stitches the answer together
+From the shifter's side it feels like one assistant; architecturally it's 5 modular agents + 1 orchestrator
+4. The four-stage build (WP1→WP4)
+WP1: study the 5 services, how they expose data
+WP2: design the one reusable MCP pattern all 5 agents will follow (your core contribution)
+WP3: build + validate the first agent (one service) to prove the pattern works
+WP4: reuse the framework to build the remaining four agents
+5. Deliverables
+Architecture document (agent-to-service protocols + orchestration layer design)
+5 working MCP agents (code)
+Per-agent benchmarking report — 5 separate report cards, not one combined evaluation
+6. Benchmarking = the part to plan early
+Five dimensions, per agent: reliability, robustness, output consistency, performance, resource usage
+7. Publication plan
+Consider splitting into two papers: (a) architecture/framework across 5 agents (b) Benchmarking LLM agents on live scientific infrastructure
+8. Who will use our System : Shifters and Experts
+Shifters / Operators run the live system day-to-day, not just during. They need routine help: checking status, following procedures, finding documentation
+When something unusual happens, they currently escalate to an expert — that's the slow part this assistant reduces
+Simple idea: the assistant is a natural-language front door to the whole system — for routine questions and for when something's wrong
+
+

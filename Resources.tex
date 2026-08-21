@@ -1,0 +1,180 @@
+https://gitlab.cern.ch/atlas-tdaq-software/ers?fbclid=IwY2xjawT0115wZG9mBWV4dG4DYWVtAjEwAGJyaWQRMXVMR0hxanpNZkdaZWtuRnVzcnRjBmFwcF9pZBAyMjIwMzkxNzg4MjAwODkyAAEe19U_eYYiCN2RnFSe7vYlrLRy6glbw0AdeCt4R1tGnmnyL7s31ZuqiITC_lY_aem_3GTFWzt_7oGuWbF_QPn11w
+run control: https://gitlab.cern.ch/atlas-tdaq-software/RunControl
+pmg: https://gitlab.cern.ch/atlas-tdaq-software/PmgGui
+
+
+some content I retrevied:
+
+rough content: LLM Agents for ATLAS TDAQ Live Runtime Services
+Project Document — Run Control and Process Management Track
+
+1. Scope and position
+This project develops LLM agents that allow an ATLAS shift operator to query live TDAQ runtime services in natural language. The wider programme covers five services — Run Control (RC), Process Management (PMG), Configuration (OKS), Information Service (IS), and Error Reporting System (ERS) — each exposed through a dedicated agent, with a single orchestration layer routing operator questions to the appropriate agent or agents and composing the response.
+This document covers the Run Control and Process Management agents, which are the primary deliverables of this track. It also specifies the shared MCP framework these agents are built on, since that framework is intended for reuse across the remaining three services.
+1.1 Relationship to the DCS track
+A parallel track addresses anomaly detection and predictive maintenance over archived Detector Control System sensor data. The two tracks are methodologically distinct: DCS works on historical time-series analysis, this track on live-system querying.
+Interface point. Historical TDAQ operational data is served by PBEAST (Persistent Back-End for the ATLAS information System of TDAQ), which archives IS objects for long-term storage and provides access from outside the ATLAS experiment network. Because both tracks read archived monitoring data, ownership of the PBEAST access layer must be agreed explicitly rather than assumed to be confined to the nominally shared work package. Recommended position: this track owns PBEAST access for operational querying; the DCS track owns analytical modelling over the same source.
+1.2 Novelty
+No MCP framework currently exists for any of the five TDAQ live runtime services. The reusable agent-to-service pattern developed here is the project's principal technical contribution; the individual agents are demonstrations that the pattern generalises.
+
+2. Background: what RC and PMG are
+2.1 Run Control
+Run Control is the central orchestration service governing the operational lifetime of a data acquisition run. It enforces uniform state across thousands of heterogeneous applications — Readout Drivers, Readout Crate DAQs, High-Level Trigger nodes, Event Builders — so that data collection starts, runs, and stops synchronously without data loss or buffer corruption.
+RC is organised as a hierarchical tree. A Root Controller supervises the partition and receives commands from the operator GUI or external clients. Segment Controllers beneath it manage detector subsystems or functional groups as defined by OKS segment definitions. Leaf nodes are Controllable Applications implementing the RC finite state machine, performing actual hardware configuration, buffer allocation, trigger unmasking, and event processing.
+Commands propagate down the tree. A controller forwards a transition request to its children, awaits their asynchronous responses, aggregates reported states, and updates its own. This is what makes command fan-out tractable at scale.
+Each node's behaviour follows a strict finite state machine spanning INITIAL, BOOTED, CONFIGURED, READY, RUNNING, and PAUSED, driven by named transition commands (boot, configure, connect, prepareForRun, start, pause, resume, stop, shutdown).
+Open item. The exact state list requires confirmation against the RunControl source. The presence and placement of a distinct CONNECTED state between CONFIGURED and READY is unresolved, and the transition targeting READY is inconsistently documented in secondary sources. This must be settled in WP1 — it directly determines the RC agent's state model.
+Repository: gitlab.cern.ch/atlas-tdaq-software/RunControl (Apache 2.0).
+2.2 Process Management
+Where RC manages logical state, PMG manages the operating-system lifecycle of every TDAQ binary — starting, supervising, inspecting, and terminating processes across the compute farm.
+Three components: PMG Clients (CLI and C++/Python APIs used by RC, the operator GUI, and other services); a PMG Server, partition-aware, which validates requests, enforces resource allocation through the Resource Manager, checks authorisation, and routes to hosts; and PMG Launchers, root-privileged daemons on each compute node that fork, drop privilege to the target service account, set the environment, and execute the binary.
+Processes are addressed network-wide by a URL-style PMG Handle: pmg://<host>/<partition>/<application>/<id>.
+Supervision is event-driven rather than polled: the Launcher blocks on waitpid and captures exit codes and crashes immediately. OS metrics — CPU, resident set size, virtual memory, open file descriptors — are gathered from /proc and published to IS. If the PMG Server restarts, it rediscovers running Launchers and restores handle-to-PID mapping without disturbing active processes.
+Repository: gitlab.cern.ch/atlas-tdaq-software/ProcessManager. Note that admin/pmg-systemd is deployment packaging (an RPM for standalone pmgserver installation), not the implementation — though it is the most practical route to a local development instance. Related package pmgsync was split out of owl after tdaq-09-02-01.
+2.3 Operational coupling
+The two services are distinct but tightly coupled during a run.
+On boot, the Root Controller queries OKS for applications and host assignments, delegates process creation to PMG, and receives PMG Handles. As each application initialises it registers its CORBA servant with the IPC directory; the parent RC node locates it, binds it into the tree, and moves it from INITIAL to BOOTED.
+On failure — say an unhandled segmentation fault — the local Launcher detects termination via waitpid, the PMG Server raises an ERS alert, and the parent RC node marks ERROR, sets its busy flag, and halts trigger distribution across the partition to prevent corrupted data collection.
+This coupling is the strongest argument for the orchestration layer. The operator question "why did TileCal stop?" cannot be answered by either agent alone. It requires an RC error state, a PMG exit code, and an ERS message correlated in time.
+
+3. WP1 — How RC and PMG expose data
+The central WP1 finding is that RC and PMG are not, for querying purposes, two independent integration targets. Both publish their observable state to the Information Service. RC publishes FSM states and run parameters; PMG publishes process status and /proc-derived metrics. IS is therefore the common substrate, and IS objects are named entities carrying attributes of primitive type, structure, or arrays thereof, grouped into IS classes.
+This yields three distinct access paths, differing sharply in cost and reach.
+Tier 1 — Static configuration (OKS)
+Answers structural questions: what the controller tree looks like, which applications belong to a segment, which host an application is assigned to, what parameters it carries, which binary it runs.
+Requires a TDAQ release and OKS files; no running partition. Accessible through the configuration Python bindings, or from the command line via utilities such as dal_dump_apps. Since tdaq-09-01-00 OKS configurations can be git-backed, with revision selection via TDAQ_DB_VERSION.
+Lowest cost, immediately available, and sufficient for a substantial class of operator questions.
+Tier 2 — Historical telemetry (PBEAST)
+Answers retrospective questions: what state a controller held at a given time, how a process's memory footprint evolved across a run, when a component last entered ERROR.
+PBEAST was created explicitly to archive a subset of operational monitoring data for long-term storage with web access from outside the ATLAS experiment network. It is implemented over secure HTTP and exposes C++, Python, and Java APIs alongside REST functions, so clients run both inside and outside the experiment area. Data is replicated weekly to EOS, and a PBEAST instance on the TDAQ test bed outside the experiment area serves read-only access to that repository.
+This is the highest-value path for this project. It reaches real production RC and PMG data over authenticated HTTPS, requires no CORBA, and does not depend on Point 1 network access.
+Tier 3 — Live state (IPC / CORBA)
+Answers present-tense questions: current FSM state, busy flag, live process status.
+RC exposes CORBA IDL centred on the rc::controller interface; controlled applications implement daq::rc::Controllable. PMG exposes a client-server IDL supporting linked connections, where client callbacks fire on process status change, and unlinked connections for simple requests.
+This is the only tier requiring a gateway process running inside a partition, and the only one constrained by the Point 1 network boundary.
+3.1 Consequence for design
+Most operator questions resolve at Tier 1 or Tier 2. Tier 3 is required only for genuinely present-tense queries. Sequencing the build so that Tiers 1 and 2 land before Tier 3 delivers usable capability early and defers the hardest access problem.
+
+4. WP2 — The shared MCP framework
+4.1 Layered architecture
+The five agents are not five independent integrations. They sit on a common stack:
+                   Orchestration layer
+                 (routing, composition, dialogue)
+                              |
+        +----------+----------+----------+----------+
+        |          |          |          |          |
+     RC agent  PMG agent  OKS agent  IS agent  ERS agent
+        |          |          |          |          |
+        +----------+----------+----------+----------+
+                              |
+                    Semantic mapping layer
+        (IS class -> service concept; handle/name resolution)
+                              |
+                     Data access layer
+         +----------------+----------------+----------------+
+         |                |                |                |
+    OKS reader      PBEAST client     IPC gateway      ERS reader
+      (Tier 1)         (Tier 2)         (Tier 3)
+                              |
+                  Snapshot / replay harness
+
+The data access layer is written once. Agents consume it; they do not reimplement it. Without this, the RC and PMG agents will each build their own IS reader and can return divergent answers to the same question — an unacceptable property in a shifter-facing tool.
+4.2 Framework components
+Data access layer. One client per access tier, service-agnostic. The PBEAST client and OKS reader are shared verbatim across all five agents. The IPC gateway is a Python process running inside the TDAQ environment, using native bindings to translate JSON requests into CORBA invocations — external runtimes must not link C++ CORBA or OKS libraries directly, given the memory-management and ABI constraints.
+Semantic mapping layer. Maps IS classes and object naming conventions onto service concepts, so that "controller state" and "process status" resolve to concrete IS lookups. Isolating this means schema changes touch one module rather than five agents.
+Agent layer. Per service: tool definitions, resource definitions, prompt scaffolding, and a response contract. Agents are thin.
+Snapshot and replay harness. Captures IS state, OKS configuration, and ERS streams into fixtures so agents can be executed deterministically offline. See §7.
+4.3 Tool design principle
+Do not hand-write a tool per operation per service. Because RC state and PMG status are both IS objects differing by class, a generic query surface — object lookup by class and name pattern, attribute retrieval, time-range history — plus semantic wrappers gives fewer tools, less drift under schema change, and access to monitoring data not anticipated at design time.
+Expose OKS configuration as MCP resources rather than tools. It is static and addressable, which is what resources are for.
+4.4 Read-only scope
+Both agents are query-only in this project. No state transitions, no process signalling, no spawning. This is a deliberate scope boundary, and it removes the need for human-in-the-loop approval gating, BUSY-flag race checking, and long-running-transaction modelling.
+Design for the boundary anyway: classify every tool as read or mutate in the framework from the start, so that a future mutation-capable version does not require restructuring. Note also that MCP has no native long-running-job model, which is a real design problem for any later work involving transitions that take minutes to complete across thousands of nodes.
+Authorisation. Whatever credentials the gateway holds must compose with the TDAQ Access Manager rather than bypass it. An agent authenticating as one service account erases the per-user accountability AM exists to provide — a point to settle with the operations group early, since it constrains deployment.
+
+5. Agent specifications
+5.1 PMG agent
+Questions in scope. Which processes are running in a partition, and on which hosts. The status, PID, uptime, and resource consumption of a given process. Which processes have exited or crashed, and with what exit code or signal. How a process's memory or CPU behaved over a period. Which processes belong to a given application or segment.
+Primary identifiers. PMG Handle; host FQDN; application name as defined in OKS; PID.
+Access tiers used. Tier 1 for binary paths, arguments, and execution context. Tier 2 for historical metrics and crash history. Tier 3 for live process status.
+Response contract. Every answer carries the PMG Handle and the observation timestamp. A handle without a timestamp is not a usable answer for an operator, because process identity is reused across runs.
+5.2 RC agent
+Questions in scope. The current state of a controller or the tree beneath it. Which components are in ERROR or flagged BUSY. The structure of the controller hierarchy under a given segment. Which transitions are legal from the present state. When a component last changed state, and to what.
+Primary identifiers. Controller and application name within the IPC partition namespace; partition or session name; segment name.
+Access tiers used. Tier 1 for tree structure and segment membership. Tier 2 for state history. Tier 3 for live state and busy flags.
+Response contract. Every answer carries the partition, the controller name, and the observation timestamp, and distinguishes a node's own state from the aggregated state of its subtree. Conflating the two is the most likely source of a dangerously wrong answer.
+Prerequisite. The FSM state model must be confirmed against source before this agent is specified in detail.
+5.3 Terminology
+Recent TDAQ documentation uses "session" and "partition" interchangeably, while the OKS Partition class remains current as late as tdaq-11-02-00. Fix a target release at the start of WP1 and normalise vocabulary across code, documents, and agent responses. Inconsistency here will confuse both operators and reviewers.
+
+6. Build plan
+WP1 — Service study
+Confirm the RC FSM state model, transition names, and the CONNECTED question against the RunControl source. Confirm the PMG Handle syntax, IDL surface, and exception definitions against ProcessManager. Establish whether systemd deployment has altered the Launcher supervision model. Identify the IS class names and object naming conventions for RC controller state and PMG process status — these are not publicly documented and must be obtained from a live or archived partition. Obtain PBEAST credentials and validate the REST surface. Fix the target release.
+Note: GitLab file contents render client-side and cannot be retrieved by HTTP fetch; the repositories must be cloned locally. The RunControl and ProcessManager TWikis are SSO-gated. Budget for this.
+Exit criterion: a confirmed data model for both services, and a working authenticated PBEAST query from the development environment.
+WP2 — Framework design
+Build the data access layer, semantic mapping layer, and snapshot/replay harness. Define the tool and resource conventions, the response contract, and the read/mutate classification scheme. Stand up a local development partition — CVMFS or ayum for the release, the pmg-systemd RPM for a standalone pmgserver, pm.localhost.py or dbe for a minimal single-host OKS configuration, cm_setup --clean and a private TDAQ_IPC_INIT_REF for isolation.
+Exit criterion: framework can serve a Tier 1 and Tier 2 query for an arbitrary service, with deterministic replay.
+WP3 — Pilot agent: PMG
+Build PMG first, not RC. WP3's purpose is to prove the pattern generalises, so the pilot should be the most representative service rather than the most prominent. RC's FSM tree, hierarchical fan-out, and transition semantics are RC-specific; a framework shaped around them will fit the other four services badly. Configuration has the opposite problem — being static, it exercises none of the live data, authorisation, or latency concerns that define the real work.
+PMG sits between the two. It is command-shaped like RC, has a live CORBA interface, publishes to IS, sits behind the Access Manager, and has a clean identifier scheme in PMG Handles. It exercises every mechanism RC does across a far smaller state space.
+Exit criterion: PMG agent answers the §5.1 question set against replayed fixtures and a live local partition, with a completed benchmark report.
+WP4 — Framework reuse
+Build the RC agent first, as the strongest test of generalisation — if RC drops onto a PMG-shaped framework without structural change, the pattern is validated. Then OKS, IS, and ERS. Record framework modifications required by each agent; this record is the core evidence for the architecture paper.
+Exit criterion: five agents on one framework, five benchmark reports, orchestration layer routing across them.
+
+7. Benchmarking
+Per-agent report cards across six dimensions. Reports are separate, not combined — reuse of one framework does not imply comparable behaviour across services.
+Correctness. Is the answer right? Scored against a ground-truth set of questions whose answers are independently derivable from OKS and IS state. This dimension is not in the original five and is the most important one. For a tool an operator may act on during a night shift, factual accuracy dominates every systems property, and it is the first thing reviewers will ask about.
+Calibrated refusal. Does the agent decline when it lacks grounds to answer? An agent that confidently invents a controller state is considerably worse than one that reports uncertainty. Measured over deliberately unanswerable and out-of-scope queries.
+Reliability. Success rate over repeated identical invocations; behaviour under service unavailability, gateway restart, and partial data.
+Robustness. Behaviour under malformed input, ambiguous phrasing, nonexistent identifiers, adversarial prompting, and edge states such as a partition mid-transition.
+Output consistency. Variance across repeated invocations on identical input. Measurable only against replayed fixtures — see below.
+Performance and resource usage. End-to-end latency by tier; token consumption; gateway load; query load imposed on IS and PBEAST. The last matters operationally: an agent that hammers IS during a run is unacceptable regardless of answer quality.
+7.1 Why replay is a week-one decision
+Output consistency cannot be measured against a live system, because the system changes between invocations and agent nondeterminism becomes inseparable from infrastructure drift.
+The snapshot and replay harness must therefore be designed into WP2, not retrofitted at WP4. It is substantially cheaper to build early, and it is what makes the benchmarking results reproducible.
+It also resolves a positioning problem. Testing against live Point 1 is prohibited and the network is segregated, so a claim of "benchmarking on live scientific infrastructure" may not be supportable. Reproducible benchmarking against captured production state is both defensible and methodologically stronger.
+
+8. Deliverables
+Architecture document. Agent-to-service protocols, the layered framework, the semantic mapping approach, orchestration design, and the read/mutate boundary.
+Five MCP agents. RC and PMG are this track's primary deliverables; OKS, IS, and ERS follow as framework reuse.
+Five benchmark reports. One per agent, across the six dimensions in §7, with the ground-truth question sets and replay fixtures published alongside.
+
+9. Publication
+Two papers, as planned:
+(a) Architecture. The reusable MCP pattern across five heterogeneous live services, with the record of framework modifications per agent as evidence of generalisation.
+(b) Benchmarking. Evaluation methodology for LLM agents over live scientific control infrastructure.
+Suggested resequencing. Paper (a) cannot be written before WP4 completes. Paper (b), if the replay harness lands in WP2, can be drafted as a methodology contribution after WP3, with the five-agent results added later. This makes something submittable roughly a year earlier and de-risks the publication plan against WP4 slippage.
+
+10. Risks and open questions
+Item
+Impact
+Resolution
+RC FSM state model unconfirmed
+Blocks RC agent specification
+WP1, requires repository clone
+IS class names for RC/PMG state undocumented
+Blocks semantic mapping layer
+WP1, requires live or archived partition access
+PBEAST credentials and endpoint reachability
+Blocks Tier 2 entirely — the highest-value path
+WP1, resolve first
+Point 1 network segregation
+Constrains Tier 3 and any deployment
+Operations group; may bound the project to Tiers 1–2
+Access Manager integration
+Determines whether deployment is approvable
+Operations group, early
+PBEAST ownership overlap with DCS track
+Duplicated effort, divergent clients
+Agree explicitly before either team builds
+Existing automated recovery
+Risk of duplicating established systems
+Review the ESPER-based recovery layer and stopless recovery procedures; agents should compose with these, not reimplement them
+Public documentation age
+Most citable architecture papers are 2003–2013
+Treat release notes as the current source; verify implementation detail against source
+
+
+

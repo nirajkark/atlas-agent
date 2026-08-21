@@ -1,0 +1,1235 @@
+<title>Run Control, Process Management &amp; the Agent Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+:root{
+  --ground:#F2F5F7;
+  --surface:#FFFFFF;
+  --surface-2:#E8EEF2;
+  --ink:#111A21;
+  --ink-2:#3A4854;
+  --muted:#65757F;
+  --rule:#D2DAE1;
+  --rule-2:#B2BEC8;
+  --rc:#0B6E99;
+  --rc-soft:#DBEBF3;
+  --pmg:#136B54;
+  --pmg-soft:#D7EDE5;
+  --sup:#5E4595;
+  --sup-soft:#E6E0F4;
+  --sig:#A8500B;
+  --sig-soft:#F7E7D5;
+  --dgr:#A32B2B;
+  --dgr-soft:#F6DDDD;
+  --shadow:0 1px 2px rgba(17,26,33,.06),0 10px 30px -14px rgba(17,26,33,.22);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0B1115;--surface:#131C22;--surface-2:#1A252D;
+    --ink:#E1E8ED;--ink-2:#B2C1CB;--muted:#8697A0;
+    --rule:#232F38;--rule-2:#38474F;
+    --rc:#54B4DC;--rc-soft:#11303E;
+    --pmg:#4FBE9B;--pmg-soft:#0D2E25;
+    --sup:#A895DE;--sup-soft:#231D37;
+    --sig:#DE9A50;--sig-soft:#392917;
+    --dgr:#E07575;--dgr-soft:#371818;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0B1115;--surface:#131C22;--surface-2:#1A252D;
+  --ink:#E1E8ED;--ink-2:#B2C1CB;--muted:#8697A0;
+  --rule:#232F38;--rule-2:#38474F;
+  --rc:#54B4DC;--rc-soft:#11303E;
+  --pmg:#4FBE9B;--pmg-soft:#0D2E25;
+  --sup:#A895DE;--sup-soft:#231D37;
+  --sig:#DE9A50;--sig-soft:#392917;
+  --dgr:#E07575;--dgr-soft:#371818;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+main{padding:0 20px 120px}
+.wrap{max-width:1140px;margin:0 auto}
+.prose{max-width:700px}
+
+header.mast{padding:60px 0 30px;border-bottom:2px solid var(--ink);margin-bottom:14px}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--rc);margin:0 0 16px;
+}
+h1{
+  font-family:"Archivo",system-ui,sans-serif;font-weight:700;
+  font-size:clamp(2rem,5vw,3rem);line-height:1.05;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance;max-width:16ch;
+}
+.standfirst{font-size:1.15rem;line-height:1.55;color:var(--ink-2);margin:0;max-width:62ch}
+
+nav.toc{
+  display:flex;flex-wrap:wrap;gap:6px;padding:20px 0 34px;
+  border-bottom:1px solid var(--rule);margin-bottom:8px;
+}
+nav.toc a{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.02em;
+  text-decoration:none;color:var(--ink-2);background:var(--surface);
+  border:1px solid var(--rule);border-radius:3px;padding:5px 10px;
+}
+nav.toc a:hover{border-color:var(--rc);color:var(--rc)}
+nav.toc a:focus-visible{outline:2px solid var(--rc);outline-offset:1px}
+
+section{padding:44px 0 8px;border-top:1px solid var(--rule)}
+section:first-of-type{border-top:none}
+.secnum{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  letter-spacing:.14em;color:var(--rc);display:block;margin-bottom:8px;
+}
+h2{
+  font-family:"Archivo",system-ui,sans-serif;font-weight:700;font-size:1.62rem;
+  line-height:1.16;letter-spacing:-.016em;margin:0 0 12px;text-wrap:balance;
+}
+p{margin:0 0 1em}
+.lede{font-size:1.04rem;color:var(--ink-2)}
+strong{font-weight:600}
+code{
+  font-family:"IBM Plex Mono",monospace;font-size:.85em;background:var(--surface-2);
+  padding:.1em .34em;border-radius:3px;border:1px solid var(--rule);
+}
+
+figure{
+  margin:26px 0 30px;background:var(--surface);border:1px solid var(--rule);
+  border-radius:7px;overflow:hidden;box-shadow:var(--shadow);
+}
+.figscroll{overflow-x:auto;padding:24px 22px 10px}
+figure svg{display:block;width:100%;height:auto;min-width:660px}
+figcaption{
+  padding:14px 22px 16px;border-top:1px solid var(--rule);background:var(--surface-2);
+  font-size:.91rem;line-height:1.5;color:var(--ink-2);
+}
+figcaption b{
+  font-family:"IBM Plex Mono",monospace;font-size:.82rem;font-weight:600;
+  color:var(--rc);letter-spacing:.04em;margin-right:.5em;
+}
+svg text{font-family:"IBM Plex Mono",monospace}
+svg .ui{font-family:"Archivo",system-ui,sans-serif}
+
+.note{
+  margin:22px 0;padding:15px 18px;border-radius:5px;background:var(--surface);
+  border:1px solid var(--rule);border-left:3px solid var(--sig);max-width:760px;
+}
+.note h3{
+  font-family:"Archivo",system-ui,sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--sig);margin:0 0 7px;
+}
+.note p{font-size:.95rem;margin:0}
+.note.rc{border-left-color:var(--rc)}
+.note.rc h3{color:var(--rc)}
+.note.dgr{border-left-color:var(--dgr)}
+.note.dgr h3{color:var(--dgr)}
+
+footer{
+  margin-top:52px;padding-top:24px;border-top:2px solid var(--ink);
+  font-size:.87rem;color:var(--muted);max-width:700px;
+}
+</style>
+
+<main>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">ATLAS TDAQ &middot; A Visual Guide</p>
+  <h1>Run Control, Process Management &amp; the Agent Layer</h1>
+  <p class="standfirst">Twelve diagrams covering how the two services work, how they fail, where they disagree, and how an MCP agent layer sits on top of them.</p>
+</header>
+
+<nav class="toc">
+  <a href="#f1">1 · Service map</a>
+  <a href="#f2">2 · Control tree</a>
+  <a href="#f3">3 · The state machine</a>
+  <a href="#f4">4 · What the drain drains</a>
+  <a href="#f5">5 · PMG architecture</a>
+  <a href="#f6">6 · Process lifecycle</a>
+  <a href="#f7">7 · Boot handshake</a>
+  <a href="#f8">8 · Crash propagation</a>
+  <a href="#f9">9 · Three vocabularies</a>
+  <a href="#f10">10 · Staleness</a>
+  <a href="#f11">11 · The agent stack</a>
+  <a href="#f12">12 · A question, traced</a>
+</nav>
+
+<!-- ============ 1 ============ -->
+<section id="f1">
+  <span class="secnum">01</span>
+  <h2>Where the two services sit</h2>
+  <p class="prose lede">Run Control decides <em>what state things should be in</em>. Process Management decides <em>whether the binaries are alive</em>. Everything they observe lands in the Information Service, which is where an agent should read from.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 460" role="img" aria-label="Service map: OKS feeds Run Control, which delegates process creation to Process Management; both publish to the Information Service and ERS, which feed CHIP, Shifter Assistant and the P-BEAST archive">
+        <defs>
+          <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- operator -->
+        <rect x="40" y="28" width="180" height="46" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="130" y="49" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">OPERATOR</text>
+        <text x="130" y="65" text-anchor="middle" font-size="9" fill="var(--muted)">shifter &middot; GUI &middot; CLI</text>
+
+        <!-- OKS -->
+        <rect x="40" y="150" width="180" height="52" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="130" y="172" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">OKS</text>
+        <text x="130" y="189" text-anchor="middle" font-size="9" fill="var(--muted)">what should exist</text>
+
+        <!-- RC -->
+        <rect x="300" y="88" width="200" height="66" rx="5" fill="var(--rc-soft)" stroke="var(--rc)" stroke-width="2"/>
+        <text x="400" y="114" text-anchor="middle" font-size="13" font-weight="600" fill="var(--rc)">RUN CONTROL</text>
+        <text x="400" y="132" text-anchor="middle" font-size="9.5" fill="var(--rc)">hierarchical FSM tree</text>
+        <text x="400" y="146" text-anchor="middle" font-size="9" fill="var(--rc)">logical state</text>
+
+        <!-- PMG -->
+        <rect x="300" y="230" width="200" height="66" rx="5" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+        <text x="400" y="256" text-anchor="middle" font-size="13" font-weight="600" fill="var(--pmg)">PROCESS MGMT</text>
+        <text x="400" y="274" text-anchor="middle" font-size="9.5" fill="var(--pmg)">per-host servers</text>
+        <text x="400" y="288" text-anchor="middle" font-size="9" fill="var(--pmg)">OS process lifecycle</text>
+
+        <!-- CHIP -->
+        <rect x="300" y="366" width="200" height="58" rx="5" fill="var(--sup-soft)" stroke="var(--sup)"/>
+        <text x="400" y="389" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sup)">CHIP</text>
+        <text x="400" y="406" text-anchor="middle" font-size="9" fill="var(--sup)">expert system &middot; auto-recovery</text>
+
+        <!-- IS -->
+        <rect x="600" y="120" width="180" height="66" rx="5" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="690" y="146" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">INFORMATION</text>
+        <text x="690" y="162" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">SERVICE</text>
+        <text x="690" y="178" text-anchor="middle" font-size="9" fill="var(--muted)">RunCtrl &middot; PMG &middot; RunParams</text>
+
+        <!-- ERS -->
+        <rect x="600" y="248" width="180" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="690" y="271" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">ERS / MTS</text>
+        <text x="690" y="288" text-anchor="middle" font-size="9" fill="var(--muted)">errors &middot; up to 100 kHz</text>
+
+        <!-- PBEAST -->
+        <rect x="870" y="120" width="170" height="66" rx="5" fill="var(--rc-soft)" stroke="var(--rc)"/>
+        <text x="955" y="146" text-anchor="middle" font-size="12" font-weight="600" fill="var(--rc)">P-BEAST</text>
+        <text x="955" y="163" text-anchor="middle" font-size="9" fill="var(--rc)">time-series archive</text>
+        <text x="955" y="177" text-anchor="middle" font-size="9" fill="var(--rc)">~500k attr/s</text>
+
+        <!-- SA -->
+        <rect x="870" y="248" width="170" height="58" rx="5" fill="var(--sup-soft)" stroke="var(--sup)"/>
+        <text x="955" y="271" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sup)">SHIFTER ASSIST.</text>
+        <text x="955" y="288" text-anchor="middle" font-size="9" fill="var(--sup)">200+ CEP directives</text>
+
+        <!-- AM/RM -->
+        <rect x="600" y="366" width="180" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="690" y="389" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">ACCESS + RESOURCE</text>
+        <text x="690" y="406" text-anchor="middle" font-size="9" fill="var(--muted)">per-user authorisation</text>
+
+        <g color="var(--ink-2)" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#a1)">
+          <path d="M130,74 L130,84 L294,110"/>
+          <path d="M220,168 L294,132"/>
+          <path d="M400,154 L400,224"/>
+          <path d="M500,116 L594,140"/>
+          <path d="M500,262 L594,168"/>
+          <path d="M500,140 L560,140 L560,268 L594,268"/>
+          <path d="M500,290 L594,290"/>
+          <path d="M780,153 L864,153"/>
+          <path d="M780,281 L864,281"/>
+          <path d="M780,300 L820,300 L820,395 L784,395"/>
+        </g>
+        <!-- PMG back to RC -->
+        <g color="var(--pmg)" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#a1)" stroke-dasharray="5 3">
+          <path d="M460,224 L460,160"/>
+        </g>
+        <!-- CHIP loop -->
+        <g color="var(--sup)" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#a1)">
+          <path d="M340,366 L340,160"/>
+          <path d="M594,300 L540,300 L540,392 L504,392"/>
+        </g>
+        <g color="var(--ink-2)" stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#a1)">
+          <path d="M870,290 L840,290 L840,60 L226,52"/>
+          <path d="M400,296 L400,340 L560,340 L560,392 L504,392" stroke="var(--rule-2)"/>
+        </g>
+
+        <g font-size="9" fill="var(--muted)">
+          <text x="196" y="88">commands</text>
+          <text x="228" y="146">tree · hosts · binaries</text>
+          <text x="408" y="196" fill="var(--rc)">start these</text>
+          <text x="408" y="210" fill="var(--rc)">applications</text>
+          <text x="468" y="196" fill="var(--pmg)" text-anchor="start">handles,</text>
+          <text x="468" y="210" fill="var(--pmg)" text-anchor="start">exit codes</text>
+          <text x="512" y="112">publishes</text>
+          <text x="512" y="252">errors</text>
+          <text x="792" y="146">archives</text>
+          <text x="792" y="274">feeds</text>
+          <text x="348" y="230" fill="var(--sup)">hints</text>
+          <text x="640" y="118">reads</text>
+          <text x="560" y="60">alerts the shifter</text>
+          <text x="418" y="332">authorises</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1</b> The flow that matters for an agent: OKS says what <em>should</em> exist, Run Control asks Process Management to make it exist, and both report what <em>does</em> exist into the Information Service. CHIP and Shifter Assistant already consume these same streams &mdash; CHIP takes hundreds of automated recovery actions per physics run. An agent layer should compose with them, not duplicate them.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="f2">
+  <span class="secnum">02</span>
+  <h2>The control tree, and why a parent's state is a summary</h2>
+  <p class="prose lede">Commands travel down. States travel back up and get <em>aggregated</em> &mdash; which means a controller's reported state is a conclusion drawn from its children, not something it observed directly.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 400" role="img" aria-label="Run Control tree: a Root Controller sends transitions down to Segment Controllers and leaf applications, which report state back up where it is aggregated">
+        <defs>
+          <marker id="a2d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--rc)"/>
+          </marker>
+          <marker id="a2u" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--sig)"/>
+          </marker>
+        </defs>
+
+        <!-- root -->
+        <rect x="420" y="30" width="240" height="54" rx="5" fill="var(--rc-soft)" stroke="var(--rc)" stroke-width="2"/>
+        <text x="540" y="53" text-anchor="middle" font-size="13" font-weight="600" fill="var(--rc)">ROOT CONTROLLER</text>
+        <text x="540" y="70" text-anchor="middle" font-size="9.5" fill="var(--rc)">initial state NONE &middot; only node with SHUTDOWN, RELOAD_DB</text>
+
+        <!-- segments -->
+        <g>
+          <rect x="120" y="160" width="210" height="50" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="225" y="181" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">SEGMENT CTRL</text>
+          <text x="225" y="197" text-anchor="middle" font-size="9" fill="var(--muted)">TileCal</text>
+
+          <rect x="435" y="160" width="210" height="50" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="540" y="181" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">SEGMENT CTRL</text>
+          <text x="540" y="197" text-anchor="middle" font-size="9" fill="var(--muted)">Pixel</text>
+
+          <rect x="750" y="160" width="210" height="50" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="855" y="181" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">SEGMENT CTRL</text>
+          <text x="855" y="197" text-anchor="middle" font-size="9" fill="var(--muted)">HLT</text>
+        </g>
+
+        <!-- leaves -->
+        <g font-size="9.5">
+          <rect x="60" y="290" width="120" height="42" rx="4" fill="var(--surface)" stroke="var(--rule-2)"/>
+          <text x="120" y="308" text-anchor="middle" fill="var(--ink)">RCD-01</text>
+          <text x="120" y="322" text-anchor="middle" font-size="8.5" fill="var(--pmg)">RUNNING</text>
+
+          <rect x="196" y="290" width="120" height="42" rx="4" fill="var(--dgr-soft)" stroke="var(--dgr)" stroke-width="1.6"/>
+          <text x="256" y="308" text-anchor="middle" fill="var(--dgr)">RCD-02</text>
+          <text x="256" y="322" text-anchor="middle" font-size="8.5" fill="var(--dgr)">errorReasons: 1</text>
+
+          <rect x="332" y="290" width="120" height="42" rx="4" fill="var(--surface)" stroke="var(--rule-2)"/>
+          <text x="392" y="308" text-anchor="middle" fill="var(--ink)">RCD-03</text>
+          <text x="392" y="322" text-anchor="middle" font-size="8.5" fill="var(--pmg)">RUNNING</text>
+
+          <rect x="480" y="290" width="120" height="42" rx="4" fill="var(--surface)" stroke="var(--rule-2)"/>
+          <text x="540" y="308" text-anchor="middle" fill="var(--ink)">ROD-11</text>
+          <text x="540" y="322" text-anchor="middle" font-size="8.5" fill="var(--pmg)">RUNNING</text>
+
+          <rect x="750" y="290" width="120" height="42" rx="4" fill="var(--surface)" stroke="var(--rule-2)"/>
+          <text x="810" y="308" text-anchor="middle" fill="var(--ink)">PU farm</text>
+          <text x="810" y="322" text-anchor="middle" font-size="8.5" fill="var(--pmg)">RUNNING</text>
+
+          <rect x="886" y="290" width="120" height="42" rx="4" fill="var(--surface)" stroke="var(--rule-2)"/>
+          <text x="946" y="308" text-anchor="middle" fill="var(--ink)">&hellip; ×40 000</text>
+        </g>
+
+        <!-- down arrows -->
+        <g stroke="var(--rc)" stroke-width="1.4" fill="none" marker-end="url(#a2d)">
+          <path d="M480,84 L240,154"/><path d="M540,84 L540,154"/><path d="M600,84 L840,154"/>
+          <path d="M195,210 L130,284"/><path d="M225,210 L250,284"/><path d="M255,210 L386,284"/>
+          <path d="M540,210 L540,284"/>
+          <path d="M840,210 L816,284"/><path d="M870,210 L940,284"/>
+        </g>
+
+        <!-- up arrows -->
+        <g stroke="var(--sig)" stroke-width="1.4" fill="none" marker-end="url(#a2u)" stroke-dasharray="5 3">
+          <path d="M280,284 L300,216"/>
+          <path d="M300,154 L520,90"/>
+        </g>
+
+        <text x="640" y="120" font-size="10" fill="var(--rc)" class="ui">transitions propagate DOWN</text>
+        <text x="60" y="248" font-size="10" fill="var(--sig)" class="ui">states aggregate UP</text>
+
+        <!-- callout -->
+        <rect x="60" y="352" width="500" height="34" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+        <text x="76" y="373" font-size="10.5" fill="var(--sig)">TileCal reports a state derived from three children &mdash; one of them is in error.</text>
+
+        <rect x="600" y="352" width="410" height="34" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="616" y="373" font-size="10.5" fill="var(--ink-2)">badChildren localises it: &quot;unhealthy because of RCD-02&quot;.</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 2</b> A controller forwards a transition to its children, waits for their asynchronous replies, aggregates what they report, and only then updates itself. So a segment's state answers "what did my subtree conclude", not "what did I see". The <code>badChildren</code> list is what turns "the segment is unhealthy" into "the segment is unhealthy <em>because of RCD-02</em>" &mdash; and it is the only field that does.</figcaption>
+  </figure>
+
+  <div class="note rc">
+    <h3>The root is not like the others</h3>
+    <p>The FSM is a template parameterised on its initial state, and the transition table is chosen at compile time. A child controller's table does not merely <em>guard</em> the root-only transitions &mdash; it does not contain them. So <code>SHUTDOWN</code>, <code>INITIALIZE</code> and <code>RELOAD_DB</code> are legal at the root and non-existent everywhere else, and "which transitions are legal here?" has two different answers for two nodes in the same state.</p>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="f3">
+  <span class="secnum">03</span>
+  <h2>The state machine</h2>
+  <p class="prose lede">Eleven states. Five on the main spine, six that exist only during a stop.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1180 400" role="img" aria-label="Run Control finite state machine with the main spine from NONE to RUNNING and a six-step ordered drain returning to CONNECTED">
+        <defs>
+          <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+          <marker id="a3s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--sig)"/>
+          </marker>
+          <marker id="a3m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--muted)"/>
+          </marker>
+        </defs>
+
+        <g>
+          <rect x="20" y="60" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="85" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">NONE</text>
+          <text x="85" y="97" text-anchor="middle" font-size="9" fill="var(--muted)">root only</text>
+
+          <rect x="250" y="60" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="315" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">INITIAL</text>
+          <text x="315" y="97" text-anchor="middle" font-size="9" fill="var(--muted)">child start</text>
+
+          <rect x="480" y="60" width="130" height="46" rx="4" fill="var(--rc-soft)" stroke="var(--rc)"/>
+          <text x="545" y="88" text-anchor="middle" font-size="13" font-weight="600" fill="var(--rc)">CONFIGURED</text>
+
+          <rect x="710" y="60" width="130" height="46" rx="4" fill="var(--rc-soft)" stroke="var(--rc)" stroke-width="2"/>
+          <text x="775" y="88" text-anchor="middle" font-size="13" font-weight="600" fill="var(--rc)">CONNECTED</text>
+
+          <rect x="940" y="60" width="130" height="46" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="1005" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="var(--pmg)">RUNNING</text>
+          <text x="1005" y="97" text-anchor="middle" font-size="9" fill="var(--pmg)">taking data</text>
+        </g>
+
+        <g stroke="var(--ink-2)" stroke-width="1.4" fill="none" marker-end="url(#a3)">
+          <path d="M150,76 L244,76"/><path d="M380,76 L474,76"/>
+          <path d="M610,76 L704,76"/><path d="M840,76 L934,76"/>
+        </g>
+        <g font-size="10" text-anchor="middle" fill="var(--ink-2)">
+          <text x="197" y="69">INITIALIZE</text><text x="427" y="69">CONFIGURE</text>
+          <text x="660" y="69">CONNECT</text><text x="887" y="69">START</text>
+        </g>
+
+        <g stroke="var(--muted)" stroke-width="1.1" fill="none" marker-end="url(#a3m)" stroke-dasharray="4 3">
+          <path d="M244,96 L156,96"/><path d="M474,96 L386,96"/><path d="M704,96 L616,96"/>
+        </g>
+        <g font-size="9.5" text-anchor="middle" fill="var(--muted)">
+          <text x="200" y="112">SHUTDOWN</text><text x="430" y="112">UNCONFIGURE</text><text x="660" y="112">DISCONNECT</text>
+        </g>
+
+        <text x="20" y="180" font-size="10" font-weight="600" fill="var(--sig)" letter-spacing="1.3" class="ui">THE ORDERED DRAIN &mdash; STOP EXPANDS TO SIX SUB-TRANSITIONS, READ RIGHT TO LEFT</text>
+        <line x1="20" y1="192" x2="1160" y2="192" stroke="var(--rule)"/>
+
+        <g>
+          <rect x="940" y="250" width="145" height="46" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+          <text x="1012" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sig)">ROIBSTOPPED</text>
+          <rect x="710" y="250" width="145" height="46" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+          <text x="782" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sig)">DCSTOPPED</text>
+          <rect x="480" y="250" width="145" height="46" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+          <text x="552" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sig)">HLTSTOPPED</text>
+          <rect x="250" y="250" width="145" height="46" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+          <text x="322" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sig)">SFOSTOPPED</text>
+          <rect x="20" y="250" width="145" height="46" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+          <text x="92" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sig)">GTHSTOPPED</text>
+        </g>
+
+        <path d="M1005,106 C1005,180 1012,190 1012,244" stroke="var(--sig)" stroke-width="1.5" fill="none" marker-end="url(#a3s)"/>
+        <text x="1022" y="222" font-size="10" fill="var(--sig)">STOPROIB</text>
+
+        <g stroke="var(--sig)" stroke-width="1.5" fill="none" marker-end="url(#a3s)">
+          <path d="M940,273 L861,273"/><path d="M710,273 L631,273"/>
+          <path d="M480,273 L401,273"/><path d="M250,273 L171,273"/>
+        </g>
+        <g font-size="10" text-anchor="middle" fill="var(--sig)">
+          <text x="898" y="266">STOPDC</text><text x="668" y="266">STOPHLT</text>
+          <text x="438" y="266">STOPRECORDING</text><text x="208" y="266">STOPGATHERING</text>
+        </g>
+
+        <path d="M92,296 L92,350 L667,350 L667,170 L775,170 L775,112"
+              stroke="var(--sig)" stroke-width="1.5" fill="none" marker-end="url(#a3s)"/>
+        <text x="330" y="343" font-size="10" fill="var(--sig)">STOPARCHIVING &mdash; returns to CONNECTED, not CONFIGURED</text>
+
+        <text x="1160" y="345" font-size="9.5" text-anchor="end" fill="var(--muted)">ABSENT &mdash; default &quot;no information&quot;, never entered by a transition</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 3</b> The main spine runs left to right; the drain runs right to left and lands back on <code>CONNECTED</code>, so a stopped run is a single <code>START</code> from running again. There is no <code>ERROR</code> state anywhere &mdash; error is a separate list of reasons carried <em>alongside</em> whichever state the node occupies.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="f4">
+  <span class="secnum">04</span>
+  <h2>What the drain is actually draining</h2>
+  <p class="prose lede">The six stop steps look arbitrary until you lay them over the physics dataflow. Then they are obvious: shut the tap first, then empty each vessel in turn.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1160 440" role="img" aria-label="The ATLAS dataflow pipeline from detector to permanent storage, with the six Run Control stop transitions marked as numbered cut points in upstream-to-downstream order">
+        <defs>
+          <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+        </defs>
+
+        <!-- trigger seed path -->
+        <rect x="360" y="40" width="300" height="46" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="510" y="61" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">RoI BUILDER &rarr; HLT SUPERVISOR</text>
+        <text x="510" y="77" text-anchor="middle" font-size="9" fill="var(--muted)">assembles regions of interest, seeds the trigger farm</text>
+        <path d="M580,86 L640,190" stroke="var(--ink-2)" stroke-width="1.3" fill="none" marker-end="url(#a4)"/>
+        <text x="628" y="132" font-size="9" fill="var(--muted)">seeds</text>
+
+        <!-- pipeline -->
+        <g>
+          <rect x="20" y="190" width="120" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="80" y="213" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">DETECTOR</text>
+          <text x="80" y="230" text-anchor="middle" font-size="8.5" fill="var(--muted)">40 MHz crossings</text>
+
+          <rect x="180" y="190" width="120" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="240" y="213" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">RODs</text>
+          <text x="240" y="230" text-anchor="middle" font-size="8.5" fill="var(--muted)">~1900 links</text>
+
+          <rect x="340" y="190" width="120" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="400" y="213" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">ROS</text>
+          <text x="400" y="230" text-anchor="middle" font-size="8.5" fill="var(--muted)">102 servers</text>
+
+          <rect x="500" y="190" width="120" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="560" y="213" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">DATA COLL.</text>
+          <text x="560" y="230" text-anchor="middle" font-size="8.5" fill="var(--muted)">DCM</text>
+
+          <rect x="660" y="190" width="120" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="720" y="213" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">HLT FARM</text>
+          <text x="720" y="230" text-anchor="middle" font-size="8.5" fill="var(--muted)">~2000 nodes</text>
+
+          <rect x="820" y="190" width="120" height="58" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="880" y="213" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">SFO</text>
+          <text x="880" y="230" text-anchor="middle" font-size="8.5" fill="var(--muted)">48 h buffer</text>
+
+          <rect x="990" y="190" width="150" height="58" rx="5" fill="var(--pmg-soft)" stroke="var(--pmg)"/>
+          <text x="1065" y="213" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)">PERMANENT</text>
+          <text x="1065" y="230" text-anchor="middle" font-size="8.5" fill="var(--pmg)">storage / tape</text>
+        </g>
+
+        <g stroke="var(--ink-2)" stroke-width="1.6" fill="none" marker-end="url(#a4)">
+          <path d="M140,219 L174,219"/><path d="M300,219 L334,219"/>
+          <path d="M460,219 L494,219"/><path d="M620,219 L654,219"/>
+          <path d="M780,219 L814,219"/><path d="M940,219 L984,219"/>
+        </g>
+        <g font-size="8.5" fill="var(--muted)" text-anchor="middle">
+          <text x="400" y="268">160 GB/s in</text>
+          <text x="720" y="268">100 kHz &rarr; 1 kHz</text>
+          <text x="960" y="268">~1.5 GB/s</text>
+        </g>
+
+        <!-- cut points -->
+        <g>
+          <!-- 1 RoIB -->
+          <line x1="510" y1="96" x2="510" y2="120" stroke="var(--sig)" stroke-width="2.5"/>
+          <circle cx="510" cy="108" r="12" fill="var(--sig)"/>
+          <text x="510" y="112" text-anchor="middle" font-size="11" font-weight="600" fill="var(--surface)">1</text>
+          <text x="534" y="106" font-size="9.5" font-weight="600" fill="var(--sig)">STOPROIB</text>
+          <text x="534" y="119" font-size="8.5" fill="var(--sig)">triggers stop entering &rarr; ROIBSTOPPED</text>
+
+          <!-- 2 ROS->DCM -->
+          <line x1="477" y1="176" x2="477" y2="262" stroke="var(--sig)" stroke-width="2.5" stroke-dasharray="4 3"/>
+          <circle cx="477" cy="160" r="12" fill="var(--sig)"/>
+          <text x="477" y="164" text-anchor="middle" font-size="11" font-weight="600" fill="var(--surface)">2</text>
+          <text x="477" y="140" text-anchor="middle" font-size="9" font-weight="600" fill="var(--sig)">STOPDC</text>
+
+          <!-- 3 DCM->HLT -->
+          <line x1="637" y1="176" x2="637" y2="262" stroke="var(--sig)" stroke-width="2.5" stroke-dasharray="4 3"/>
+          <circle cx="637" cy="160" r="12" fill="var(--sig)"/>
+          <text x="637" y="164" text-anchor="middle" font-size="11" font-weight="600" fill="var(--surface)">3</text>
+          <text x="637" y="140" text-anchor="middle" font-size="9" font-weight="600" fill="var(--sig)">STOPHLT</text>
+
+          <!-- 4 HLT->SFO -->
+          <line x1="797" y1="176" x2="797" y2="262" stroke="var(--sig)" stroke-width="2.5" stroke-dasharray="4 3"/>
+          <circle cx="797" cy="160" r="12" fill="var(--sig)"/>
+          <text x="797" y="164" text-anchor="middle" font-size="11" font-weight="600" fill="var(--surface)">4</text>
+          <text x="797" y="140" text-anchor="middle" font-size="9" font-weight="600" fill="var(--sig)">STOPRECORDING</text>
+
+          <!-- 5 gathering -->
+          <circle cx="880" cy="160" r="12" fill="var(--sig)"/>
+          <text x="880" y="164" text-anchor="middle" font-size="11" font-weight="600" fill="var(--surface)">5</text>
+          <text x="890" y="140" text-anchor="start" font-size="9" font-weight="600" fill="var(--sig)">STOPGATHERING</text>
+          <line x1="880" y1="172" x2="880" y2="186" stroke="var(--sig)" stroke-width="2.5"/>
+
+          <!-- 6 archiving -->
+          <line x1="963" y1="176" x2="963" y2="262" stroke="var(--sig)" stroke-width="2.5" stroke-dasharray="4 3"/>
+          <circle cx="963" cy="160" r="12" fill="var(--sig)"/>
+          <text x="963" y="164" text-anchor="middle" font-size="11" font-weight="600" fill="var(--surface)">6</text>
+          <text x="1000" y="140" text-anchor="start" font-size="9" font-weight="600" fill="var(--sig)">STOPARCHIVING</text>
+        </g>
+
+        <!-- order bar -->
+        <rect x="20" y="330" width="1120" height="42" rx="5" fill="var(--sig-soft)" stroke="var(--sig)"/>
+        <text x="40" y="356" font-size="11" font-weight="600" fill="var(--sig)" class="ui">SHUTDOWN ORDER &mdash; STRICTLY UPSTREAM FIRST</text>
+        <g font-size="10" fill="var(--sig)">
+          <text x="360" y="356">1 ROIBSTOPPED</text>
+          <text x="480" y="356">2 DCSTOPPED</text>
+          <text x="588" y="356">3 HLTSTOPPED</text>
+          <text x="700" y="356">4 SFOSTOPPED</text>
+          <text x="812" y="356">5 GTHSTOPPED</text>
+          <text x="930" y="356">6 &rarr; CONNECTED</text>
+        </g>
+
+        <text x="20" y="400" font-size="10.5" fill="var(--ink-2)">Why the order matters: no stage may be torn down while something upstream is still feeding it &mdash; that is how you lose data or corrupt a buffer.</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 4</b> The same six transitions from Figure 3, laid over the physics dataflow. Each numbered cut severs one stage's input, and the state name records how far the drain has progressed. This is the figure to show someone who asks why stopping a run needs six steps: it is a pipeline shutdown, and the order is a data-integrity constraint, not a convention.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="f5">
+  <span class="secnum">05</span>
+  <h2>How Process Management actually starts a process</h2>
+  <p class="prose lede">The commonly told version &mdash; "a launcher daemon per node" &mdash; is wrong in a way that matters. There is one server per host, but one launcher <em>per managed process</em>, and it forks twice.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1120 440" role="img" aria-label="Process Management architecture: clients call a per-host server which checks Access and Resource Managers, forks a two-stage launcher per process, and communicates with it over control and report FIFOs plus a shared memory manifest">
+        <defs>
+          <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+          <marker id="a5g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--pmg)"/>
+          </marker>
+        </defs>
+
+        <!-- clients -->
+        <rect x="20" y="90" width="150" height="96" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="95" y="114" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">CLIENTS</text>
+        <text x="95" y="134" text-anchor="middle" font-size="9" fill="var(--muted)">Run Control</text>
+        <text x="95" y="150" text-anchor="middle" font-size="9" fill="var(--muted)">GUI &middot; CLI</text>
+        <text x="95" y="166" text-anchor="middle" font-size="9" fill="var(--muted)">C++ / Java / Python</text>
+
+        <!-- server -->
+        <rect x="230" y="70" width="220" height="136" rx="5" fill="var(--rc-soft)" stroke="var(--rc)" stroke-width="2"/>
+        <text x="340" y="94" text-anchor="middle" font-size="12" font-weight="600" fill="var(--rc)">PMG SERVER</text>
+        <text x="340" y="110" text-anchor="middle" font-size="9" fill="var(--rc)">one per host</text>
+        <line x1="248" y1="120" x2="432" y2="120" stroke="var(--rc)" opacity=".35"/>
+        <text x="340" y="138" text-anchor="middle" font-size="9" fill="var(--ink-2)">IPC: AGENT_&lt;host&gt;</text>
+        <text x="340" y="154" text-anchor="middle" font-size="9" fill="var(--ink-2)">/tmp/ProcessManager</text>
+        <text x="340" y="170" text-anchor="middle" font-size="9" fill="var(--ink-2)">partition table</text>
+        <text x="340" y="192" text-anchor="middle" font-size="9" fill="var(--rc)">IPCAlarm &rarr; IS every 15 s</text>
+
+        <!-- gates -->
+        <rect x="230" y="248" width="105" height="52" rx="4" fill="var(--sup-soft)" stroke="var(--sup)"/>
+        <text x="282" y="270" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--sup)">ACCESS</text>
+        <text x="282" y="286" text-anchor="middle" font-size="8.5" fill="var(--sup)">may this user?</text>
+
+        <rect x="345" y="248" width="105" height="52" rx="4" fill="var(--sup-soft)" stroke="var(--sup)"/>
+        <text x="397" y="270" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--sup)">RESOURCE</text>
+        <text x="397" y="286" text-anchor="middle" font-size="8.5" fill="var(--sup)">free? &rarr; token</text>
+
+        <g stroke="var(--sup)" stroke-width="1.3" fill="none" marker-end="url(#a5)" color="var(--sup)">
+          <path d="M300,206 L288,242"/><path d="M380,206 L392,242"/>
+        </g>
+
+        <!-- launcher -->
+        <rect x="530" y="60" width="250" height="156" rx="5" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+        <text x="655" y="84" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--pmg)">LAUNCHER &mdash; ONE PER PROCESS</text>
+
+        <rect x="550" y="98" width="210" height="42" rx="4" fill="var(--surface)" stroke="var(--pmg)"/>
+        <text x="655" y="116" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--pmg)">PMGLauncher &middot; stage 1</text>
+        <text x="655" y="131" text-anchor="middle" font-size="8.5" fill="var(--muted)">root privileged</text>
+
+        <path d="M655,140 L655,152" stroke="var(--pmg)" stroke-width="1.6" marker-end="url(#a5g)"/>
+
+        <rect x="550" y="156" width="210" height="46" rx="4" fill="var(--surface)" stroke="var(--pmg)"/>
+        <text x="655" y="174" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--pmg)">pmglauncher &middot; stage 2</text>
+        <text x="655" y="189" text-anchor="middle" font-size="8.5" fill="var(--muted)">drops privilege, sets env, exec</text>
+
+        <!-- process -->
+        <rect x="860" y="112" width="150" height="56" rx="5" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.6"/>
+        <text x="935" y="135" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">TARGET PROCESS</text>
+        <text x="935" y="152" text-anchor="middle" font-size="8.5" fill="var(--muted)">runs as service account</text>
+
+        <!-- manifest -->
+        <rect x="530" y="248" width="250" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="655" y="270" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--ink)">MANIFEST &mdash; mmap'd ProcessData</text>
+        <text x="655" y="286" text-anchor="middle" font-size="8.5" fill="var(--muted)">pmg.manifest &middot; shared between server and launcher</text>
+
+        <!-- IS -->
+        <rect x="230" y="352" width="550" height="56" rx="5" fill="var(--rc-soft)" stroke="var(--rc)" stroke-width="2"/>
+        <text x="505" y="376" text-anchor="middle" font-size="12" font-weight="600" fill="var(--rc)">INFORMATION SERVICE</text>
+        <text x="505" y="394" text-anchor="middle" font-size="9.5" fill="var(--rc)">server PMG &middot; object &lt;host&gt;|&lt;application&gt; &middot; PMGPublishedProcessData</text>
+
+        <!-- arrows -->
+        <g stroke="var(--ink-2)" stroke-width="1.4" fill="none" marker-end="url(#a5)">
+          <path d="M170,138 L224,138"/>
+          <path d="M450,110 L524,110"/>
+          <path d="M760,140 L854,140"/>
+        </g>
+        <text x="197" y="130" text-anchor="middle" font-size="9" fill="var(--muted)">CORBA</text>
+        <text x="487" y="102" text-anchor="middle" font-size="9" fill="var(--muted)">fork</text>
+        <text x="807" y="132" text-anchor="middle" font-size="9" fill="var(--muted)">fork+exec</text>
+
+        <!-- waitpid -->
+        <path d="M935,168 C935,225 800,232 786,212" stroke="var(--pmg)" stroke-width="1.5" fill="none" marker-end="url(#a5g)" stroke-dasharray="5 3"/>
+        <text x="900" y="206" font-size="9.5" fill="var(--pmg)">waitpid &mdash; instant, not polled</text>
+
+        <!-- FIFOs -->
+        <path d="M450,176 L524,176" stroke="var(--sig)" stroke-width="1.5" fill="none" marker-end="url(#a5)"/>
+        <path d="M524,196 L450,196" stroke="var(--sig)" stroke-width="1.5" fill="none" marker-end="url(#a5)"/>
+        <text x="487" y="170" text-anchor="middle" font-size="8.5" fill="var(--sig)">control FIFO</text>
+        <text x="487" y="212" text-anchor="middle" font-size="8.5" fill="var(--sig)">report FIFO</text>
+
+        <path d="M655,216 L655,242" stroke="var(--rule-2)" stroke-width="1.4" fill="none"/>
+        <path d="M420,206 L500,248 L524,262" stroke="var(--rule-2)" stroke-width="1.4" fill="none"/>
+
+        <path d="M340,206 L340,346" stroke="var(--rc)" stroke-width="1.5" fill="none" marker-end="url(#a5)"/>
+
+        <!-- fifo codes -->
+        <rect x="820" y="248" width="280" height="112" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+        <text x="838" y="268" font-size="10" font-weight="600" fill="var(--sig)" class="ui">CONTROL FIFO CODES</text>
+        <g font-size="9.5" fill="var(--sig)">
+          <text x="838" y="288">u &mdash; refresh /proc statistics</text>
+          <text x="838" y="304">t &mdash; SIGTERM</text>
+          <text x="838" y="320">k &mdash; SIGKILL</text>
+          <text x="838" y="336">K n &mdash; SIGTERM, then SIGKILL after n</text>
+          <text x="838" y="352">q &mdash; launcher control thread quits</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption><b>Figure 5</b> One server per host; one launcher <em>per process</em>, forked in two stages so privilege can be dropped between them. Server and launcher share a memory-mapped manifest and talk over two named FIFOs. Supervision is event-driven &mdash; the launcher blocks on <code>waitpid</code>, so an exit or crash is known immediately rather than at the next poll.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="f6">
+  <span class="secnum">06</span>
+  <h2>The process lifecycle &mdash; and the one state that lies</h2>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1120 340" role="img" aria-label="PMG process states from NOTAV through RUNNING, with terminal states FAILED, SYNCERROR, EXITED and SIGNALED, showing published string names differing from enumerator names">
+        <defs>
+          <marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--pmg)"/>
+          </marker>
+          <marker id="a6d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--dgr)"/>
+          </marker>
+        </defs>
+
+        <g>
+          <rect x="20" y="50" width="140" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="90" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">NOTAV</text>
+          <text x="90" y="89" text-anchor="middle" font-size="8.5" fill="var(--sig)">"not defined"</text>
+
+          <rect x="210" y="50" width="140" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="280" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">REQUESTED</text>
+          <text x="280" y="89" text-anchor="middle" font-size="8.5" fill="var(--muted)">"requested"</text>
+
+          <rect x="400" y="50" width="140" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="470" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">LAUNCHING</text>
+          <text x="470" y="89" text-anchor="middle" font-size="8.5" fill="var(--muted)">"launching"</text>
+
+          <rect x="590" y="50" width="140" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="660" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">CREATED</text>
+          <text x="660" y="89" text-anchor="middle" font-size="8.5" fill="var(--muted)">"created"</text>
+
+          <rect x="780" y="50" width="140" height="52" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="850" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--pmg)">RUNNING</text>
+          <text x="850" y="89" text-anchor="middle" font-size="8.5" fill="var(--pmg)">"running" &middot; alive</text>
+        </g>
+
+        <g stroke="var(--pmg)" stroke-width="1.5" fill="none" marker-end="url(#a6)">
+          <path d="M160,76 L204,76"/><path d="M350,76 L394,76"/>
+          <path d="M540,76 L584,76"/><path d="M730,76 L774,76"/>
+        </g>
+
+        <line x1="20" y1="150" x2="1100" y2="150" stroke="var(--rule)"/>
+        <text x="20" y="142" font-size="10" font-weight="600" fill="var(--dgr)" letter-spacing="1.2" class="ui">TERMINAL STATES</text>
+
+        <g>
+          <rect x="210" y="210" width="150" height="52" rx="4" fill="var(--dgr-soft)" stroke="var(--dgr)"/>
+          <text x="285" y="232" text-anchor="middle" font-size="12" font-weight="600" fill="var(--dgr)">FAILED</text>
+          <text x="285" y="249" text-anchor="middle" font-size="8.5" fill="var(--sig)">"failure" &mdash; different word</text>
+
+          <rect x="450" y="210" width="180" height="52" rx="4" fill="var(--sig-soft)" stroke="var(--sig)" stroke-width="2"/>
+          <text x="540" y="232" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sig)">SYNCERROR</text>
+          <text x="540" y="249" text-anchor="middle" font-size="8.5" fill="var(--sig)">"sync error" &mdash; note the space</text>
+
+          <rect x="700" y="210" width="150" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="775" y="232" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">EXITED</text>
+          <text x="775" y="249" text-anchor="middle" font-size="8.5" fill="var(--muted)">clean &middot; exit code</text>
+
+          <rect x="900" y="210" width="150" height="52" rx="4" fill="var(--dgr-soft)" stroke="var(--dgr)"/>
+          <text x="975" y="232" text-anchor="middle" font-size="12" font-weight="600" fill="var(--dgr)">SIGNALED</text>
+          <text x="975" y="249" text-anchor="middle" font-size="8.5" fill="var(--dgr)">the crash case</text>
+        </g>
+
+        <g stroke="var(--dgr)" stroke-width="1.4" fill="none" marker-end="url(#a6d)">
+          <path d="M470,102 C470,160 340,170 300,204"/>
+          <path d="M660,102 C660,160 570,175 552,204"/>
+          <path d="M850,102 C850,155 800,178 782,204"/>
+          <path d="M850,102 C900,155 950,180 968,204"/>
+        </g>
+        <g font-size="9" fill="var(--dgr)">
+          <text x="356" y="170">start failed</text>
+          <text x="600" y="178">no confirmation file</text>
+          <text x="690" y="168" fill="var(--ink-2)">normal exit</text>
+          <text x="912" y="168">signal</text>
+        </g>
+
+        <rect x="20" y="286" width="1080" height="36" rx="4" fill="var(--sig-soft)" stroke="var(--sig)"/>
+        <text x="38" y="309" font-size="10.5" fill="var(--sig)">SYNCERROR does not mean the process is down &mdash; it means PMG cannot confirm it. Report the uncertainty, not a conclusion.</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 6</b> The published string is <em>not</em> the enumerator name for four of the nine states &mdash; and three of those four are failure states. A tool that filters the Information Service on <code>state == "FAILED"</code> silently returns nothing, because the stored value is <code>"failure"</code>. Filter on the numeric <code>state_code</code>; use the string only for display.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="f7">
+  <span class="secnum">07</span>
+  <h2>Boot: where the two services shake hands</h2>
+  <p class="prose lede">One field, <code>fullyInitialized</code>, records that this handshake completed. It is the join key between the two state models.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 400" role="img" aria-label="Boot sequence: Run Control reads OKS, asks PMG to start an application, PMG checks authorisation and resources then forks a launcher, the application registers with IPC, and Run Control binds it into the tree and sets fullyInitialized">
+        <defs>
+          <marker id="a7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+        </defs>
+
+        <!-- lanes -->
+        <g font-size="10.5" font-weight="600" class="ui">
+          <rect x="20" y="24" width="150" height="34" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="95" y="46" text-anchor="middle" fill="var(--ink)">OKS</text>
+          <rect x="230" y="24" width="150" height="34" rx="4" fill="var(--rc-soft)" stroke="var(--rc)"/>
+          <text x="305" y="46" text-anchor="middle" fill="var(--rc)">RUN CONTROL</text>
+          <rect x="440" y="24" width="150" height="34" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)"/>
+          <text x="515" y="46" text-anchor="middle" fill="var(--pmg)">PMG SERVER</text>
+          <rect x="650" y="24" width="150" height="34" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="725" y="46" text-anchor="middle" fill="var(--ink)">LAUNCHER</text>
+          <rect x="860" y="24" width="180" height="34" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="950" y="46" text-anchor="middle" fill="var(--ink)">APPLICATION</text>
+        </g>
+
+        <g stroke="var(--rule-2)" stroke-width="1" stroke-dasharray="3 4">
+          <line x1="95" y1="58" x2="95" y2="368"/>
+          <line x1="305" y1="58" x2="305" y2="368"/>
+          <line x1="515" y1="58" x2="515" y2="368"/>
+          <line x1="725" y1="58" x2="725" y2="368"/>
+          <line x1="950" y1="58" x2="950" y2="368"/>
+        </g>
+
+        <g stroke="var(--ink-2)" stroke-width="1.3" fill="none" marker-end="url(#a7)" font-size="9.5">
+          <path d="M305,90 L101,90"/>
+          <path d="M95,120 L299,120"/>
+          <path d="M305,152 L509,152"/>
+          <path d="M515,214 L719,214"/>
+          <path d="M725,244 L944,244"/>
+          <path d="M515,278 L311,278"/>
+          <path d="M950,306 L311,306"/>
+        </g>
+        <g font-size="9.5" fill="var(--ink-2)">
+          <text x="120" y="84">which apps, which hosts?</text>
+          <text x="120" y="114">segment tree + assignments</text>
+          <text x="330" y="146">request_start(app, host)</text>
+          <text x="540" y="208">fork launcher</text>
+          <text x="750" y="238">fork + exec, privilege dropped</text>
+          <text x="330" y="272">PMG Handle</text>
+          <text x="330" y="300">registers CORBA servant with IPC &rarr; RC binds it into the tree</text>
+        </g>
+
+        <!-- AM/RM self call -->
+        <rect x="524" y="168" width="180" height="34" rx="4" fill="var(--sup-soft)" stroke="var(--sup)"/>
+        <text x="614" y="189" text-anchor="middle" font-size="9.5" fill="var(--sup)">AM: allowStart? RM: reserve?</text>
+
+        <!-- outcome -->
+        <rect x="230" y="330" width="700" height="38" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+        <text x="248" y="354" font-size="10.5" font-weight="600" fill="var(--pmg)">fullyInitialized = true &mdash; the PMG synch is complete; the node can leave INITIAL</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 7</b> Boot in seven steps. Note what "boot" means here: there is no <code>boot</code> transition in the FSM &mdash; process creation is delegated entirely to Process Management, and the FSM only advances once the application has registered itself and the parent has bound it into the tree.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="f8">
+  <span class="secnum">08</span>
+  <h2>Crash: how failure propagates, and where it gets lossy</h2>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 380" role="img" aria-label="Crash propagation: a segfault is detected by waitpid, PMG records SIGNALED with the signal, publishes to IS and raises ERS, Run Control records the child as bad and halts triggers, but its own status field collapses signalled and exited into one value">
+        <defs>
+          <marker id="a8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--dgr)"/>
+          </marker>
+        </defs>
+
+        <g>
+          <rect x="20" y="46" width="150" height="56" rx="5" fill="var(--dgr-soft)" stroke="var(--dgr)" stroke-width="2"/>
+          <text x="95" y="70" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--dgr)">SIGSEGV</text>
+          <text x="95" y="87" text-anchor="middle" font-size="8.5" fill="var(--dgr)">application dies</text>
+
+          <rect x="215" y="46" width="160" height="56" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="295" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">LAUNCHER</text>
+          <text x="295" y="87" text-anchor="middle" font-size="8.5" fill="var(--muted)">waitpid returns</text>
+
+          <rect x="420" y="46" width="180" height="56" rx="5" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="510" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)">PMG SERVER</text>
+          <text x="510" y="87" text-anchor="middle" font-size="8.5" fill="var(--pmg)">state = SIGNALED</text>
+        </g>
+
+        <g stroke="var(--dgr)" stroke-width="1.5" fill="none" marker-end="url(#a8)">
+          <path d="M170,74 L209,74"/><path d="M375,74 L414,74"/>
+        </g>
+
+        <!-- fan out -->
+        <g>
+          <rect x="180" y="160" width="220" height="66" rx="5" fill="var(--rc-soft)" stroke="var(--rc)"/>
+          <text x="290" y="182" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--rc)">IS &mdash; PMG.&lt;host&gt;|&lt;app&gt;</text>
+          <text x="290" y="199" text-anchor="middle" font-size="8.5" fill="var(--rc)">state "signaled" &middot; signal &middot; exit</text>
+          <text x="290" y="214" text-anchor="middle" font-size="8.5" fill="var(--muted)">metrics freeze at last-alive values</text>
+
+          <rect x="430" y="160" width="200" height="66" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="530" y="182" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--ink)">ERS alert</text>
+          <text x="530" y="199" text-anchor="middle" font-size="8.5" fill="var(--muted)">ApplicationSignaled</text>
+          <text x="530" y="214" text-anchor="middle" font-size="8.5" fill="var(--muted)">&rarr; CHIP, Shifter Assistant</text>
+
+          <rect x="670" y="160" width="230" height="66" rx="5" fill="var(--sup-soft)" stroke="var(--sup)"/>
+          <text x="785" y="182" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--sup)">RC linked-client callback</text>
+          <text x="785" y="199" text-anchor="middle" font-size="8.5" fill="var(--sup)">badChildren += app &middot; busy = true</text>
+          <text x="785" y="214" text-anchor="middle" font-size="8.5" fill="var(--sup)">triggers halted across partition</text>
+        </g>
+
+        <g stroke="var(--dgr)" stroke-width="1.4" fill="none" marker-end="url(#a8)">
+          <path d="M480,102 L330,154"/><path d="M510,102 L520,154"/><path d="M560,102 L740,154"/>
+        </g>
+
+        <!-- lossy -->
+        <rect x="180" y="272" width="720" height="76" rx="5" fill="var(--sig-soft)" stroke="var(--sig)" stroke-width="2"/>
+        <text x="200" y="294" font-size="10.5" font-weight="600" fill="var(--sig)" class="ui">WHERE THE CRASH SIGNAL GETS LOST</text>
+        <text x="200" y="314" font-size="10" fill="var(--sig)">PMG distinguishes EXITED (clean, with a code) from SIGNALED (killed, with a signal).</text>
+        <text x="200" y="332" font-size="10" fill="var(--sig)">RC's DAQApplicationInfo.status collapses both into EXITED &mdash; ask RC and you cannot tell a crash from a clean stop.</text>
+
+        <path d="M785,226 L785,266" stroke="var(--sig)" stroke-width="1.5" fill="none" marker-end="url(#a8)" stroke-dasharray="4 3"/>
+      </svg>
+    </div>
+    <figcaption><b>Figure 8</b> The crash reaches four consumers within milliseconds. But the two services do not carry the same amount of information about it: PMG separates a clean exit from a signal, RC's supervision field does not. For "did it crash or was it stopped?", PMG is the only authoritative source &mdash; a precedence rule the agent layer has to encode, because both answers will be available.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="f9">
+  <span class="secnum">09</span>
+  <h2>Three vocabularies, six collisions</h2>
+  <p class="prose lede">The two services carry three different notions of "what this component is doing" &mdash; and the names overlap while the meanings do not. This is the central safety problem for any agent built on top.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 420" role="img" aria-label="Three state vocabularies side by side with six token names appearing in more than one, and the RUNNING collision highlighted as the most dangerous">
+        <text x="175" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="var(--rc)" class="ui">RC FSM STATE</text>
+        <text x="175" y="44" text-anchor="middle" font-size="8.5" fill="var(--muted)">RCStateInfo.state &mdash; where in the run</text>
+        <text x="540" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="var(--sup)" class="ui">RC SUPERVISION STATUS</text>
+        <text x="540" y="44" text-anchor="middle" font-size="8.5" fill="var(--muted)">DAQApplicationInfo.status &mdash; RC's belief</text>
+        <text x="905" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)" class="ui">PMG PROCESS STATE</text>
+        <text x="905" y="44" text-anchor="middle" font-size="8.5" fill="var(--muted)">PMGPublishedProcessData.state &mdash; observed</text>
+
+        <g font-size="10.5">
+          <rect x="80" y="60" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="90" y="75" fill="var(--sig)" font-weight="600">ABSENT</text>
+          <rect x="80" y="86" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="101" fill="var(--rc)">NONE</text>
+          <rect x="80" y="112" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="127" fill="var(--rc)">INITIAL</text>
+          <rect x="80" y="138" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="153" fill="var(--rc)">CONFIGURED</text>
+          <rect x="80" y="164" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="179" fill="var(--rc)">CONNECTED</text>
+          <rect x="80" y="190" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)" stroke-width="1.8"/><text x="90" y="205" fill="var(--sig)" font-weight="600">RUNNING</text>
+          <rect x="80" y="216" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="231" fill="var(--rc)">ROIBSTOPPED</text>
+          <rect x="80" y="242" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="257" fill="var(--rc)">DCSTOPPED</text>
+          <rect x="80" y="268" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="283" fill="var(--rc)">HLTSTOPPED</text>
+          <rect x="80" y="294" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="309" fill="var(--rc)">SFOSTOPPED</text>
+          <rect x="80" y="320" width="190" height="22" rx="3" fill="var(--rc-soft)" stroke="var(--rc)" opacity=".5"/><text x="90" y="335" fill="var(--rc)">GTHSTOPPED</text>
+        </g>
+
+        <g font-size="10.5">
+          <rect x="445" y="60" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="455" y="75" fill="var(--sig)" font-weight="600">NOTAV</text>
+          <rect x="445" y="86" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="455" y="101" fill="var(--sig)" font-weight="600">ABSENT</text>
+          <rect x="445" y="112" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="455" y="127" fill="var(--sig)" font-weight="600">REQUESTED</text>
+          <rect x="445" y="138" width="190" height="22" rx="3" fill="var(--sup-soft)" stroke="var(--sup)" opacity=".5"/><text x="455" y="153" fill="var(--sup)">UP</text>
+          <rect x="445" y="164" width="190" height="22" rx="3" fill="var(--sup-soft)" stroke="var(--sup)" opacity=".5"/><text x="455" y="179" fill="var(--sup)">TERMINATING</text>
+          <rect x="445" y="190" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="455" y="205" fill="var(--sig)" font-weight="600">EXITED</text>
+          <rect x="445" y="216" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="455" y="231" fill="var(--sig)" font-weight="600">FAILED</text>
+        </g>
+
+        <g font-size="10.5">
+          <rect x="810" y="60" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="820" y="75" fill="var(--sig)" font-weight="600">NOTAV</text>
+          <rect x="810" y="86" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="820" y="101" fill="var(--sig)" font-weight="600">REQUESTED</text>
+          <rect x="810" y="112" width="190" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".5"/><text x="820" y="127" fill="var(--pmg)">LAUNCHING</text>
+          <rect x="810" y="138" width="190" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".5"/><text x="820" y="153" fill="var(--pmg)">CREATED</text>
+          <rect x="810" y="164" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)" stroke-width="1.8"/><text x="820" y="179" fill="var(--sig)" font-weight="600">RUNNING</text>
+          <rect x="810" y="190" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="820" y="205" fill="var(--sig)" font-weight="600">EXITED</text>
+          <rect x="810" y="216" width="190" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".5"/><text x="820" y="231" fill="var(--pmg)">SIGNALED</text>
+          <rect x="810" y="242" width="190" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".5"/><text x="820" y="257" fill="var(--pmg)">SYNCERROR</text>
+          <rect x="810" y="268" width="190" height="22" rx="3" fill="var(--sig-soft)" stroke="var(--sig)"/><text x="820" y="283" fill="var(--sig)" font-weight="600">FAILED</text>
+        </g>
+
+        <g stroke="var(--sig)" stroke-width="1.2" fill="none" opacity=".75">
+          <path d="M270,71 L439,97"/>
+          <path d="M635,71 L804,71"/>
+          <path d="M635,123 L804,97"/>
+          <path d="M635,201 L804,201"/>
+          <path d="M635,227 L804,279"/>
+        </g>
+
+        <path d="M270,201 L320,201 L320,392 L760,392 L760,175 L804,175"
+              stroke="var(--sig)" stroke-width="2.4" fill="none" stroke-dasharray="7 3"/>
+        <text x="540" y="386" text-anchor="middle" font-size="11" font-weight="600" fill="var(--sig)">RUNNING &ne; RUNNING &mdash; &quot;taking data&quot; vs. &quot;the process is alive&quot;</text>
+
+        <rect x="80" y="352" width="190" height="26" rx="3" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="90" y="369" font-size="9" fill="var(--muted)">amber = name appears twice</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 9</b> Six names appear in more than one vocabulary. The heavy dashed link is the dangerous one: it spans the two vocabularies furthest apart in meaning, and it is the collision an operator is most likely to trigger, because "is it running?" is the most natural question to ask. A partition can be fully <code>RUNNING</code> in PMG's sense &mdash; every process alive and healthy &mdash; and taking no data at all.</figcaption>
+  </figure>
+
+  <div class="note dgr">
+    <h3>Why a system prompt cannot fix this</h3>
+    <p>By the time text reaches the model, a tool has already returned <code>state: "RUNNING"</code>. The ambiguity is in the data, not the wording &mdash; no prompt recovers a distinction the payload never carried. The fix has to be structural: values get typed by vocabulary <em>before</em> they reach the model, so <code>rc.fsm:RUNNING</code> and <code>pmg.process:RUNNING</code> cannot compare equal.</p>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="f10">
+  <span class="secnum">10</span>
+  <h2>How stale is the answer?</h2>
+  <p class="prose lede">The two services publish on completely different schedules, so "as of when?" has a different answer depending on which one you asked.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 360" role="img" aria-label="Timeline comparing PMG publishing to the Information Service every fifteen seconds against Run Control publishing only when status changes, showing how answer age differs">
+        <defs>
+          <marker id="a10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+        </defs>
+
+        <!-- axis -->
+        <line x1="120" y1="300" x2="1000" y2="300" stroke="var(--ink-2)" stroke-width="1.4"/>
+        <g font-size="9" fill="var(--muted)" text-anchor="middle">
+          <text x="120" y="320">t = 0 s</text>
+          <text x="266" y="320">15</text><text x="413" y="320">30</text>
+          <text x="560" y="320">45</text><text x="706" y="320">60</text>
+          <text x="853" y="320">75</text><text x="1000" y="320">90</text>
+        </g>
+        <g stroke="var(--rule)" stroke-width="1">
+          <line x1="266" y1="60" x2="266" y2="300"/><line x1="413" y1="60" x2="413" y2="300"/>
+          <line x1="560" y1="60" x2="560" y2="300"/><line x1="706" y1="60" x2="706" y2="300"/>
+          <line x1="853" y1="60" x2="853" y2="300"/>
+        </g>
+
+        <!-- PMG lane -->
+        <text x="20" y="105" font-size="10.5" font-weight="600" fill="var(--pmg)" class="ui">PMG</text>
+        <text x="20" y="120" font-size="8.5" fill="var(--muted)">every 15 s</text>
+        <line x1="120" y1="140" x2="1000" y2="140" stroke="var(--pmg)" stroke-width="1.2" opacity=".4"/>
+        <g fill="var(--pmg)">
+          <circle cx="120" cy="140" r="6"/><circle cx="266" cy="140" r="6"/><circle cx="413" cy="140" r="6"/>
+          <circle cx="560" cy="140" r="6"/><circle cx="706" cy="140" r="6"/><circle cx="853" cy="140" r="6"/>
+          <circle cx="1000" cy="140" r="6"/>
+        </g>
+        <rect x="560" y="126" width="146" height="28" fill="var(--pmg)" opacity=".13"/>
+        <text x="633" y="112" text-anchor="middle" font-size="9" fill="var(--pmg)">bounded staleness &le; 15 s</text>
+
+        <!-- RC lane -->
+        <text x="20" y="205" font-size="10.5" font-weight="600" fill="var(--rc)" class="ui">RUN CONTROL</text>
+        <text x="20" y="220" font-size="8.5" fill="var(--muted)">on status change</text>
+        <line x1="120" y1="240" x2="1000" y2="240" stroke="var(--rc)" stroke-width="1.2" opacity=".4"/>
+        <g fill="var(--rc)">
+          <circle cx="120" cy="240" r="6"/><circle cx="180" cy="240" r="6"/><circle cx="205" cy="240" r="6"/>
+          <circle cx="300" cy="240" r="6"/><circle cx="905" cy="240" r="6"/>
+        </g>
+        <rect x="300" y="226" width="605" height="28" fill="var(--rc)" opacity=".13"/>
+        <text x="600" y="218" text-anchor="middle" font-size="9" fill="var(--rc)">unbounded &mdash; a stable node publishes nothing for minutes</text>
+
+        <!-- query line -->
+        <line x1="660" y1="60" x2="660" y2="300" stroke="var(--sig)" stroke-width="2.2"/>
+        <text x="660" y="52" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--sig)">agent queries here</text>
+
+        <!-- age brackets -->
+        <path d="M560,168 L660,168" stroke="var(--sig)" stroke-width="1.4" marker-start="url(#a10)" marker-end="url(#a10)" fill="none"/>
+        <text x="610" y="184" text-anchor="middle" font-size="9.5" fill="var(--sig)">age 10 s</text>
+
+        <path d="M300,268 L660,268" stroke="var(--sig)" stroke-width="1.4" marker-start="url(#a10)" marker-end="url(#a10)" fill="none"/>
+        <text x="480" y="284" text-anchor="middle" font-size="9.5" fill="var(--sig)">age 37 s &mdash; and that is normal, not a fault</text>
+
+        <text x="20" y="52" font-size="10" fill="var(--ink-2)">Same question, same instant, two very different answer ages.</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 10</b> PMG publishes on a fixed 15-second alarm, so its data has a known upper bound on staleness. Run Control publishes only when something changes &mdash; which means a healthy, stable node may not have published for a long time, and old data there is evidence of <em>stability</em>, not of a problem. An agent that treats age uniformly across the two will either cry wolf about RC or over-trust PMG.</figcaption>
+  </figure>
+
+  <div class="note">
+    <h3>And a second, sharper trap</h3>
+    <p>Every status record carries <em>two</em> timestamps in nanoseconds. One is wall-clock time. The other is a monotonic ordering token that the source explicitly says "may have no relationship at all with the clock time" &mdash; it exists so the publisher can discard out-of-order updates. Render that one as a date and the agent produces precise, confident, entirely fictitious answers to "when did this happen".</p>
+  </div>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="f11">
+  <span class="secnum">11</span>
+  <h2>The agent layer</h2>
+  <p class="prose lede">Five agents, one framework. Everything that could make two agents disagree about the same fact lives below the contract boundary and is written once.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 500" role="img" aria-label="Layered MCP framework with orchestration on top, five thin service agents, a response contract, the semantic mapping layer, a shared data access layer across three tiers, and a snapshot replay harness">
+        <rect x="150" y="20" width="780" height="52" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)" stroke-width="1.6"/>
+        <text x="540" y="42" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" class="ui">ORCHESTRATION</text>
+        <text x="540" y="60" text-anchor="middle" font-size="9.5" fill="var(--muted)">routing &middot; composition &middot; detecting when two services disagree</text>
+
+        <g>
+          <rect x="20" y="100" width="196" height="50" rx="4" fill="var(--rc-soft)" stroke="var(--rc)" stroke-width="1.6"/>
+          <text x="118" y="121" text-anchor="middle" font-size="11" font-weight="600" fill="var(--rc)">RC AGENT</text>
+          <text x="118" y="137" text-anchor="middle" font-size="8.5" fill="var(--rc)">strongest reuse test</text>
+
+          <rect x="232" y="100" width="196" height="50" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="330" y="121" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)">PMG AGENT</text>
+          <text x="330" y="137" text-anchor="middle" font-size="8.5" fill="var(--pmg)">pilot</text>
+
+          <rect x="444" y="100" width="196" height="50" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="542" y="129" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">OKS AGENT</text>
+
+          <rect x="656" y="100" width="196" height="50" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="754" y="129" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">IS AGENT</text>
+
+          <rect x="868" y="100" width="192" height="50" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="964" y="129" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">ERS AGENT</text>
+        </g>
+        <text x="20" y="170" font-size="9" fill="var(--muted)">thin by design &mdash; tool definitions, resources, prompt scaffolding, nothing else</text>
+
+        <rect x="20" y="188" width="1040" height="50" rx="5" fill="var(--sig-soft)" stroke="var(--sig)" stroke-width="1.8"/>
+        <text x="540" y="209" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sig)" class="ui">RESPONSE CONTRACT &mdash; THE PROVENANCE ENVELOPE</text>
+        <text x="540" y="227" text-anchor="middle" font-size="9.5" fill="var(--sig)">no value crosses this line without its vocabulary, tier, observation time and age</text>
+
+        <rect x="20" y="256" width="1040" height="72" rx="5" fill="var(--sup-soft)" stroke="var(--sup)" stroke-width="2.6"/>
+        <text x="540" y="279" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sup)" class="ui">SEMANTIC MAPPING LAYER</text>
+        <text x="540" y="297" text-anchor="middle" font-size="9.5" fill="var(--sup)">vocabulary registry &middot; identifier resolution &middot; derived quantities &middot; source precedence &middot; staleness rules</text>
+        <text x="540" y="315" text-anchor="middle" font-size="9" font-style="italic" fill="var(--sup)">the only place the three RUNNINGs are distinguishable &mdash; load-bearing, not a convenience</text>
+
+        <rect x="20" y="346" width="1040" height="82" rx="5" fill="var(--surface)" stroke="var(--rule-2)" stroke-width="1.6"/>
+        <text x="540" y="368" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" class="ui">DATA ACCESS &mdash; SERVICE-AGNOSTIC, WRITTEN ONCE</text>
+        <g>
+          <rect x="46" y="380" width="228" height="36" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)"/>
+          <text x="160" y="403" text-anchor="middle" font-size="10" font-weight="600" fill="var(--pmg)">OKS reader &middot; Tier 1</text>
+          <rect x="298" y="380" width="228" height="36" rx="4" fill="var(--rc-soft)" stroke="var(--rc)"/>
+          <text x="412" y="403" text-anchor="middle" font-size="10" font-weight="600" fill="var(--rc)">P-BEAST client &middot; Tier 2</text>
+          <rect x="550" y="380" width="228" height="36" rx="4" fill="var(--dgr-soft)" stroke="var(--dgr)"/>
+          <text x="664" y="403" text-anchor="middle" font-size="10" font-weight="600" fill="var(--dgr)">IPC gateway &middot; Tier 3</text>
+          <rect x="802" y="380" width="232" height="36" rx="4" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+          <text x="918" y="403" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-2)">ERS reader</text>
+        </g>
+
+        <rect x="20" y="446" width="1040" height="40" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)" stroke-width="1.6" stroke-dasharray="6 3"/>
+        <text x="540" y="471" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-2)" class="ui">SNAPSHOT &amp; REPLAY HARNESS &mdash; deterministic fixtures, built early, not retrofitted</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 11</b> Agents stay thin. Vocabulary, identifier resolution, metric differencing and source precedence all sit below the contract boundary, so two agents cannot drift into giving different answers to the same question &mdash; which is the property that actually matters in a shifter-facing tool. Only three access tiers exist, and the OKS and P-BEAST clients are shared verbatim by all five agents.</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 12 ============ -->
+<section id="f12">
+  <span class="secnum">12</span>
+  <h2>One question, traced end to end</h2>
+  <p class="prose lede">"Why did TileCal stop?" is the canonical case, because no single agent can answer it &mdash; and the useful answer comes from noticing that two sources disagree.</p>
+
+  <figure>
+    <div class="figscroll">
+      <svg viewBox="0 0 1080 560" role="img" aria-label="A question traced through the agent stack: identifier resolution, parallel RC and PMG lookups at tier two, two provenance envelopes, and an orchestrator that detects the disagreement between them">
+        <defs>
+          <marker id="a12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+        </defs>
+
+        <rect x="300" y="16" width="480" height="46" rx="23" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.6"/>
+        <text x="540" y="44" text-anchor="middle" font-size="13" fill="var(--ink)" font-style="italic">&quot;Why did TileCal stop?&quot;</text>
+
+        <rect x="330" y="94" width="420" height="48" rx="5" fill="var(--surface-2)" stroke="var(--rule-2)"/>
+        <text x="540" y="114" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" class="ui">resolve_identifier</text>
+        <text x="540" y="131" text-anchor="middle" font-size="9" fill="var(--muted)">&quot;TileCal&quot; &rarr; controller name + PMG handle &middot; the gate on every other tool</text>
+
+        <path d="M540,62 L540,88" stroke="var(--ink-2)" stroke-width="1.5" fill="none" marker-end="url(#a12)"/>
+
+        <!-- branches -->
+        <path d="M440,142 L300,180" stroke="var(--rc)" stroke-width="1.5" fill="none" marker-end="url(#a12)"/>
+        <path d="M640,142 L780,180" stroke="var(--pmg)" stroke-width="1.5" fill="none" marker-end="url(#a12)"/>
+
+        <rect x="60" y="190" width="420" height="120" rx="5" fill="var(--rc-soft)" stroke="var(--rc)" stroke-width="1.8"/>
+        <text x="270" y="212" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--rc)" class="ui">RC AGENT &middot; Tier 2</text>
+        <text x="80" y="234" font-size="9.5" fill="var(--rc)">get_history( RCStateInfo, RunCtrl.TileCal )</text>
+        <line x1="80" y1="244" x2="460" y2="244" stroke="var(--rc)" opacity=".3"/>
+        <text x="80" y="264" font-size="9.5" fill="var(--ink-2)">state = INITIAL</text>
+        <text x="80" y="280" font-size="9.5" fill="var(--ink-2)">fullyInitialized = false</text>
+        <text x="80" y="296" font-size="9.5" fill="var(--ink-2)">errorReasons = [] &middot; badChildren = []</text>
+
+        <rect x="600" y="190" width="420" height="120" rx="5" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="1.8"/>
+        <text x="810" y="212" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--pmg)" class="ui">PMG AGENT &middot; Tier 2</text>
+        <text x="620" y="234" font-size="9.5" fill="var(--pmg)">get_object( PMG.&lt;host&gt;|TileCal-RCD )</text>
+        <line x1="620" y1="244" x2="1000" y2="244" stroke="var(--pmg)" opacity=".3"/>
+        <text x="620" y="264" font-size="9.5" fill="var(--ink-2)">state_code = 4 &rarr; RUNNING</text>
+        <text x="620" y="280" font-size="9.5" fill="var(--ink-2)">resident = 1.9 GB, rising</text>
+        <text x="620" y="296" font-size="9.5" fill="var(--ink-2)">no exit code, no signal</text>
+
+        <!-- envelopes -->
+        <rect x="60" y="332" width="420" height="56" rx="5" fill="var(--sig-soft)" stroke="var(--sig)"/>
+        <text x="80" y="352" font-size="9.5" font-weight="600" fill="var(--sig)">vocabulary: rc.fsm</text>
+        <text x="80" y="368" font-size="9" fill="var(--sig)">means: &quot;has not been configured for a run&quot;</text>
+        <text x="80" y="382" font-size="9" fill="var(--sig)">tier 2 &middot; observed 03:14:22 &middot; age 41 s</text>
+
+        <rect x="600" y="332" width="420" height="56" rx="5" fill="var(--sig-soft)" stroke="var(--sig)"/>
+        <text x="620" y="352" font-size="9.5" font-weight="600" fill="var(--sig)">vocabulary: pmg.process</text>
+        <text x="620" y="368" font-size="9" fill="var(--sig)">means: &quot;the OS process is alive&quot;</text>
+        <text x="620" y="382" font-size="9" fill="var(--sig)">tier 2 &middot; observed 03:14:58 &middot; age 5 s</text>
+
+        <path d="M270,310 L270,326" stroke="var(--sig)" stroke-width="1.4" fill="none" marker-end="url(#a12)"/>
+        <path d="M810,310 L810,326" stroke="var(--sig)" stroke-width="1.4" fill="none" marker-end="url(#a12)"/>
+
+        <path d="M270,388 L270,420 L500,420" stroke="var(--ink-2)" stroke-width="1.5" fill="none" marker-end="url(#a12)"/>
+        <path d="M810,388 L810,420 L580,420" stroke="var(--ink-2)" stroke-width="1.5" fill="none" marker-end="url(#a12)"/>
+
+        <rect x="230" y="436" width="620" height="46" rx="5" fill="var(--sup-soft)" stroke="var(--sup)" stroke-width="2"/>
+        <text x="540" y="456" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--sup)" class="ui">ORCHESTRATOR &mdash; THE TWO SOURCES DISAGREE</text>
+        <text x="540" y="473" text-anchor="middle" font-size="9.5" fill="var(--sup)">process alive, but Run Control never completed the PMG handshake</text>
+
+        <rect x="150" y="502" width="780" height="44" rx="5" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+        <text x="540" y="521" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)">&quot;TileCal did not stop &mdash; it never finished starting.&quot;</text>
+        <text x="540" y="537" text-anchor="middle" font-size="9" fill="var(--pmg)">A hung startup, not a crash. Different remedy entirely.</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 12</b> The payoff. Because both values arrive tagged with their vocabulary, the orchestrator can see that <code>rc.fsm:INITIAL</code> and <code>pmg.process:RUNNING</code> are not contradictory readings of one thing but consistent readings of two things &mdash; and that the combination has a specific diagnosis. Had either value arrived as a bare <code>"RUNNING"</code> or <code>"INITIAL"</code> string, that inference would have been unavailable.</figcaption>
+  </figure>
+</section>
+
+<footer>
+  <p>All structural facts drawn from the <code>RunControl</code> and <code>ProcessManager</code> sources (Apache-2.0) and from the published ATLAS TDAQ controls literature. Scale figures are Run 2 values. State names, identifier grammars and interface methods are quoted from source; the diagrams simplify topology, not semantics.</p>
+</footer>
+
+</div>
+</main>

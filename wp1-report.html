@@ -1,0 +1,1525 @@
+<title>Run Control &amp; Process Management: WP1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+:root{
+  --ground:#F2F5F7;
+  --surface:#FFFFFF;
+  --surface-2:#E9EEF2;
+  --ink:#111A21;
+  --ink-2:#3A4854;
+  --muted:#63737F;
+  --rule:#D3DBE2;
+  --rule-strong:#B4C0CA;
+  --accent:#0B6E99;
+  --accent-soft:#DCEBF3;
+  --signal:#A8500B;
+  --signal-soft:#F6E7D6;
+  --fsm:#0B6E99;
+  --fsm-soft:#DCEBF3;
+  --sup:#5E4595;
+  --sup-soft:#E7E1F4;
+  --pmg:#136B54;
+  --pmg-soft:#D9EDE6;
+  --danger:#A32B2B;
+  --danger-soft:#F6DEDE;
+  --shadow:0 1px 2px rgba(17,26,33,.06),0 8px 24px -12px rgba(17,26,33,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1216;
+    --surface:#141D23;
+    --surface-2:#1B262E;
+    --ink:#E2E9EE;
+    --ink-2:#B4C2CC;
+    --muted:#88979F;
+    --rule:#24313A;
+    --rule-strong:#3A4A55;
+    --accent:#54B4DC;
+    --accent-soft:#12303E;
+    --signal:#DE9A50;
+    --signal-soft:#3A2A18;
+    --fsm:#54B4DC;
+    --fsm-soft:#12303E;
+    --sup:#A895DE;
+    --sup-soft:#241E38;
+    --pmg:#4FBE9B;
+    --pmg-soft:#0E2E26;
+    --danger:#E07575;
+    --danger-soft:#381919;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1216;
+  --surface:#141D23;
+  --surface-2:#1B262E;
+  --ink:#E2E9EE;
+  --ink-2:#B4C2CC;
+  --muted:#88979F;
+  --rule:#24313A;
+  --rule-strong:#3A4A55;
+  --accent:#54B4DC;
+  --accent-soft:#12303E;
+  --signal:#DE9A50;
+  --signal-soft:#3A2A18;
+  --fsm:#54B4DC;
+  --fsm-soft:#12303E;
+  --sup:#A895DE;
+  --sup-soft:#241E38;
+  --pmg:#4FBE9B;
+  --pmg-soft:#0E2E26;
+  --danger:#E07575;
+  --danger-soft:#381919;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.shell{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1180px){
+  .shell{grid-template-columns:248px minmax(0,1fr);align-items:start}
+}
+
+/* ---------- nav rail ---------- */
+nav.rail{display:none}
+@media(min-width:1180px){
+  nav.rail{
+    display:block;position:sticky;top:0;max-height:100vh;overflow-y:auto;
+    padding:40px 20px 60px 32px;border-right:1px solid var(--rule);
+  }
+  nav.rail .railtitle{
+    font-family:"Archivo",system-ui,sans-serif;font-size:11px;font-weight:600;
+    letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+    margin:0 0 14px;
+  }
+  nav.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  nav.rail a{
+    display:flex;gap:9px;text-decoration:none;color:var(--ink-2);
+    font-family:"Archivo",system-ui,sans-serif;font-size:13px;line-height:1.35;
+    padding:5px 8px;border-radius:4px;border-left:2px solid transparent;
+  }
+  nav.rail a:hover{background:var(--surface-2);color:var(--ink)}
+  nav.rail a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  nav.rail a .n{
+    font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);
+    font-variant-numeric:tabular-nums;padding-top:1px;flex:none;
+  }
+}
+main{padding:0 20px 120px;min-width:0}
+.wrap{max-width:780px;margin:0 auto}
+@media(min-width:1180px){main{padding:0 48px 140px}}
+
+/* ---------- masthead ---------- */
+header.mast{padding:56px 0 34px;border-bottom:2px solid var(--ink);margin-bottom:38px}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:500;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:0 0 18px;
+}
+h1{
+  font-family:"Archivo",system-ui,sans-serif;font-weight:700;
+  font-size:clamp(2.1rem,5.4vw,3.15rem);line-height:1.04;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance;
+}
+.standfirst{
+  font-size:1.18rem;line-height:1.55;color:var(--ink-2);margin:0 0 30px;max-width:64ch;
+}
+.metastrip{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden;
+}
+.metastrip div{background:var(--surface);padding:11px 14px}
+.metastrip dt{
+  font-family:"Archivo",system-ui,sans-serif;font-size:10px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px;
+}
+.metastrip dd{
+  margin:0;font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+  color:var(--ink);line-height:1.4;
+}
+
+/* ---------- typography ---------- */
+h2{
+  font-family:"Archivo",system-ui,sans-serif;font-weight:700;
+  font-size:1.72rem;line-height:1.14;letter-spacing:-.017em;
+  margin:0 0 6px;text-wrap:balance;
+}
+h3{
+  font-family:"Archivo",system-ui,sans-serif;font-weight:600;
+  font-size:1.16rem;line-height:1.28;letter-spacing:-.008em;
+  margin:0 0 10px;text-wrap:balance;
+}
+h4{
+  font-family:"Archivo",system-ui,sans-serif;font-weight:600;font-size:.88rem;
+  letter-spacing:.03em;margin:0 0 8px;color:var(--ink);
+}
+section.sec{padding:46px 0;border-top:1px solid var(--rule)}
+section.sec:first-of-type{border-top:none;padding-top:0}
+.secnum{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  letter-spacing:.13em;color:var(--accent);display:block;margin-bottom:9px;
+  font-variant-numeric:tabular-nums;
+}
+p{margin:0 0 1.05em;max-width:68ch}
+.lede{font-size:1.06rem;color:var(--ink-2);max-width:66ch}
+ul,ol{margin:0 0 1.15em;padding-left:1.25em;max-width:66ch}
+li{margin-bottom:.42em}
+li::marker{color:var(--muted)}
+strong{font-weight:600}
+a{color:var(--accent)}
+code,.mono{
+  font-family:"IBM Plex Mono",monospace;font-size:.855em;
+  background:var(--surface-2);padding:.12em .34em;border-radius:3px;
+  border:1px solid var(--rule);
+}
+h2 code,h3 code,h4 code,td code,th code{font-size:.9em}
+
+/* ---------- figures ---------- */
+figure{
+  margin:30px 0;background:var(--surface);border:1px solid var(--rule);
+  border-radius:6px;overflow:hidden;box-shadow:var(--shadow);
+}
+@media(min-width:1180px){figure{width:min(1080px,calc(100vw - 400px));max-width:1080px}}
+.figbody{overflow-x:auto;padding:22px 20px 8px;background:var(--surface)}
+.figbody svg{display:block;min-width:640px;width:100%;height:auto}
+figcaption{
+  padding:13px 20px 15px;border-top:1px solid var(--rule);
+  font-size:.9rem;line-height:1.5;color:var(--ink-2);background:var(--surface-2);
+}
+figcaption b{
+  font-family:"IBM Plex Mono",monospace;font-size:.83rem;font-weight:600;
+  color:var(--accent);letter-spacing:.03em;margin-right:.5em;
+}
+svg text{font-family:"IBM Plex Mono",monospace}
+svg .lbl{font-family:"Archivo",system-ui,sans-serif}
+
+/* ---------- tables ---------- */
+.tablewrap{
+  overflow-x:auto;margin:26px 0;border:1px solid var(--rule);
+  border-radius:6px;background:var(--surface);box-shadow:var(--shadow);
+}
+@media(min-width:1180px){.tablewrap{width:min(1080px,calc(100vw - 400px));max-width:1080px}}
+table{border-collapse:collapse;width:100%;font-size:.855rem;min-width:520px}
+caption{
+  text-align:left;padding:13px 16px;border-bottom:1px solid var(--rule);
+  font-family:"Archivo",system-ui,sans-serif;font-size:.8rem;font-weight:600;
+  letter-spacing:.02em;color:var(--ink-2);background:var(--surface-2);
+}
+caption b{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent);
+  letter-spacing:.04em;margin-right:.5em;
+}
+th{
+  text-align:left;padding:9px 14px;font-family:"Archivo",system-ui,sans-serif;
+  font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--rule-strong);vertical-align:bottom;
+  white-space:nowrap;
+}
+td{
+  padding:9px 14px;border-bottom:1px solid var(--rule);vertical-align:top;
+  line-height:1.5;font-variant-numeric:tabular-nums;
+}
+tbody tr:last-child td{border-bottom:none}
+td.m,th.m{font-family:"IBM Plex Mono",monospace;font-size:.79rem;white-space:nowrap}
+td.wrap{white-space:normal;font-family:"Source Serif 4",Georgia,serif;font-size:.9rem}
+tbody tr:hover{background:var(--surface-2)}
+
+/* ---------- chips / pills ---------- */
+.pill{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:3px;
+  border:1px solid transparent;white-space:nowrap;
+}
+.p-read{background:var(--pmg-soft);color:var(--pmg);border-color:var(--pmg)}
+.p-mut{background:var(--danger-soft);color:var(--danger);border-color:var(--danger)}
+.p-fsm{background:var(--fsm-soft);color:var(--fsm);border-color:var(--fsm)}
+.p-sup{background:var(--sup-soft);color:var(--sup);border-color:var(--sup)}
+.p-pmg{background:var(--pmg-soft);color:var(--pmg);border-color:var(--pmg)}
+.p-warn{background:var(--signal-soft);color:var(--signal);border-color:var(--signal)}
+.p-ok{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+
+/* ---------- callouts ---------- */
+.note{
+  margin:26px 0;padding:16px 18px 16px 20px;border-radius:5px;
+  border:1px solid var(--rule);border-left:3px solid var(--accent);
+  background:var(--surface);
+}
+.note.warn{border-left-color:var(--signal)}
+.note.danger{border-left-color:var(--danger)}
+.note h4{
+  font-family:"Archivo",system-ui,sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--accent);margin:0 0 8px;
+}
+.note.warn h4{color:var(--signal)}
+.note.danger h4{color:var(--danger)}
+.note p:last-child,.note ul:last-child{margin-bottom:0}
+.note p,.note ul{font-size:.955rem}
+
+/* ---------- finding cards ---------- */
+.findings{
+  display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+  border-radius:6px;overflow:hidden;margin:28px 0;
+}
+@media(min-width:640px){.findings{grid-template-columns:1fr 1fr}}
+@media(min-width:1180px){.findings{width:min(1080px,calc(100vw - 400px));max-width:1080px}}
+.finding{background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:7px}
+.finding .fid{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.1em;color:var(--accent);
+}
+.finding .fh{
+  font-family:"Archivo",system-ui,sans-serif;font-size:.97rem;font-weight:600;
+  line-height:1.3;margin:0;letter-spacing:-.005em;
+}
+.finding p{font-size:.885rem;line-height:1.5;color:var(--ink-2);margin:0;max-width:none}
+
+/* ---------- EBNF / code block ---------- */
+pre{
+  margin:24px 0;padding:16px 18px;background:var(--surface);border:1px solid var(--rule);
+  border-radius:6px;overflow-x:auto;font-family:"IBM Plex Mono",monospace;
+  font-size:.8rem;line-height:1.62;box-shadow:var(--shadow);color:var(--ink);
+}
+@media(min-width:1180px){pre{width:min(1080px,calc(100vw - 400px));max-width:1080px}}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+pre .c{color:var(--muted)}
+pre .k{color:var(--accent);font-weight:600}
+pre .s{color:var(--pmg)}
+
+/* ---------- definition rows ---------- */
+.defs{display:flex;flex-direction:column;gap:0;margin:24px 0;border-top:1px solid var(--rule)}
+.defs > div{
+  display:grid;grid-template-columns:1fr;gap:2px;padding:12px 0;
+  border-bottom:1px solid var(--rule);
+}
+@media(min-width:620px){.defs > div{grid-template-columns:190px 1fr;gap:20px}}
+.defs dt{
+  font-family:"IBM Plex Mono",monospace;font-size:.8rem;font-weight:600;color:var(--ink);
+}
+.defs dd{margin:0;font-size:.94rem;color:var(--ink-2);line-height:1.5}
+
+footer.end{
+  margin-top:56px;padding-top:26px;border-top:2px solid var(--ink);
+  font-size:.86rem;color:var(--muted);
+}
+footer.end p{max-width:66ch}
+</style>
+
+<div class="shell">
+
+<nav class="rail" aria-label="Contents">
+  <p class="railtitle">WP1 Contents</p>
+  <ol>
+    <li><a href="#s1"><span class="n">1</span><span>What WP1 found</span></a></li>
+    <li><a href="#s2"><span class="n">2</span><span>Method &amp; evidence rules</span></a></li>
+    <li><a href="#s3"><span class="n">3</span><span>Run Control data model</span></a></li>
+    <li><a href="#s4"><span class="n">4</span><span>Process Management data model</span></a></li>
+    <li><a href="#s5"><span class="n">5</span><span>The three-vocabulary collision</span></a></li>
+    <li><a href="#s6"><span class="n">6</span><span>How RC and PMG couple</span></a></li>
+    <li><a href="#s7"><span class="n">7</span><span>Access tiers, revised</span></a></li>
+    <li><a href="#s8"><span class="n">8</span><span>Methodology: the MCP pattern</span></a></li>
+    <li><a href="#s9"><span class="n">9</span><span>What WP1 leaves open</span></a></li>
+    <li><a href="#s10"><span class="n">10</span><span>Evidence index</span></a></li>
+  </ol>
+</nav>
+
+<main>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Work Package 1 &middot; Service Study</p>
+  <h1>Run Control and Process Management</h1>
+  <p class="standfirst">A source-verified data model for the two ATLAS TDAQ services this track will wrap in LLM agents &mdash; and the architectural pattern that model forces on WP2.</p>
+  <dl class="metastrip">
+    <div><dt>Status</dt><dd>WP1 complete</dd></div>
+    <div><dt>Evidence base</dt><dd>Primary source</dd></div>
+    <div><dt>Repositories</dt><dd>RunControl<br>ProcessManager</dd></div>
+    <div><dt>Blockers cleared</dt><dd>4 of 4</dd></div>
+  </dl>
+</header>
+
+<!-- ================= 1 ================= -->
+<section class="sec" id="s1">
+  <span class="secnum">01</span>
+  <h2>What WP1 found</h2>
+  <p class="lede">WP1 asked four blocking questions. All four are now answered against source rather than against secondary literature &mdash; and three of the four answers contradict the working draft.</p>
+
+  <p>The working draft described Run Control using a state model drawn from the publicly citable ATLAS papers, which are largely 2003&ndash;2013. That model is obsolete. The FSM was rewritten in 2012&ndash;2014, and the current implementation shares only three state names with the one in the literature. Any agent built on the published description would have produced confidently wrong answers about the state of a live partition.</p>
+
+  <p>This is the single most consequential outcome of WP1, and it generalises: for a system of this age, <em>the citable documentation and the running code have diverged</em>. The methodology in &sect;2 exists to make that divergence detectable rather than accidental.</p>
+
+  <div class="findings">
+    <div class="finding">
+      <span class="fid">F1 &middot; RESOLVED</span>
+      <p class="fh">CONNECTED exists, and sits between CONFIGURED and RUNNING</p>
+      <p>The open question in the draft is settled. <code>CONNECTED</code> is a real state, entered from <code>CONFIGURED</code> by <code>CONNECT</code>, and left towards <code>RUNNING</code> by <code>START</code>.</p>
+    </div>
+    <div class="finding">
+      <span class="fid">F2 &middot; CORRECTION</span>
+      <p class="fh">BOOTED, READY and PAUSED do not exist</p>
+      <p>Nor do <code>boot</code>, <code>prepareForRun</code>, <code>pause</code> or <code>resume</code>. The draft's six-state model is the pre-2012 FSM. The current FSM has eleven states.</p>
+    </div>
+    <div class="finding">
+      <span class="fid">F3 &middot; CORRECTION</span>
+      <p class="fh">Stopping is a six-step ordered drain, not one transition</p>
+      <p><code>STOP</code> expands into six sub-transitions through five intermediate states, draining the dataflow in a fixed order. A partition mid-stop is in a named state, not "stopping".</p>
+    </div>
+    <div class="finding">
+      <span class="fid">F4 &middot; CORRECTION</span>
+      <p class="fh">ERROR is not a state &mdash; it is an orthogonal flag</p>
+      <p>The FSM has no error state. Error is carried as a separate list of reasons alongside the state. "Which controllers are in ERROR?" is not a state query.</p>
+    </div>
+    <div class="finding">
+      <span class="fid">F5 &middot; RESOLVED</span>
+      <p class="fh">The IS classes are documented in-repo after all</p>
+      <p>The draft assumed IS class names required a live partition. <code>PMGPublishedProcessData</code> and <code>PMGPublishedAgentData</code> ship as an OKS schema in ProcessManager; the RC classes are recoverable from the publisher source.</p>
+    </div>
+    <div class="finding">
+      <span class="fid">F6 &middot; CORRECTION</span>
+      <p class="fh">The RC CORBA interface is <code>rc::commander</code></p>
+      <p>Not <code>rc::controller</code>. And <code>Controllable</code> is a C++ base class, not an IDL interface &mdash; it never appears on the wire.</p>
+    </div>
+    <div class="finding">
+      <span class="fid">F7 &middot; CORRECTION</span>
+      <p class="fh">The PMG Handle carries an optional port</p>
+      <p>The grammar is <code>pmg://host[:port]/partition/app/id</code>. A parser built to the draft's four-field form will mis-parse any handle that names a non-default port.</p>
+    </div>
+    <div class="finding">
+      <span class="fid">F8 &middot; NEW RISK</span>
+      <p class="fh">Three state vocabularies collide by name</p>
+      <p>RC FSM state, RC supervision status and PMG process state share six token names with different meanings. <code>RUNNING</code> means two unrelated things. This is the project's central safety problem &mdash; see &sect;5.</p>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <h4>What this changes about the project</h4>
+    <p>F8 reframes the contribution. Before WP1, the semantic mapping layer was a tidiness measure &mdash; a way to avoid five agents each writing their own IS reader. After WP1 it is the load-bearing safety component: it is the only place where the three <code>RUNNING</code>s can be told apart, and an agent that skips it can tell a shifter a detector is running when its processes are alive but taking no data. The architecture paper should be built around this, not around code reuse.</p>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section class="sec" id="s2">
+  <span class="secnum">02</span>
+  <h2>Method and evidence rules</h2>
+  <p class="lede">WP1 is a verification exercise, so its method has to be stated as precisely as an experimental one. Otherwise the next person cannot tell which claims are load-bearing.</p>
+
+  <h3>2.1 Source-of-truth ordering</h3>
+  <p>Every factual claim in this report is assigned to one of four evidence classes, and the class is recorded. Where classes disagree, the higher class wins and the disagreement is reported as a finding rather than silently resolved.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 1</b> Evidence classes, in decreasing authority</caption>
+    <thead><tr><th>Class</th><th>Source</th><th>Authority</th><th class="wrap">Used in this report for</th></tr></thead>
+    <tbody>
+      <tr><td class="m">E1</td><td class="m">Implementation source</td><td><span class="pill p-ok">Definitive</span></td><td class="wrap">State and command enumerations, transition tables, IDL surfaces, IS attribute names, identifier grammars</td></tr>
+      <tr><td class="m">E2</td><td class="m">In-repo schema &amp; IDL</td><td><span class="pill p-ok">Definitive</span></td><td class="wrap">IS class definitions and attribute types, exception vocabularies</td></tr>
+      <tr><td class="m">E3</td><td class="m">In-repo doc comments</td><td><span class="pill p-warn">Corroborating</span></td><td class="wrap">Intent and semantics of a field. Verified against E1 before use &mdash; two disagreements found</td></tr>
+      <tr><td class="m">E4</td><td class="m">Published papers, TWiki</td><td><span class="pill p-mut">Untrusted</span></td><td class="wrap">Historical context only. Never used to establish a current fact</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>The demotion of E4 to <em>untrusted</em> is deliberate and is itself a WP1 result. The draft's FSM came from E4 and was wrong in five of six state names. For a system whose most citable architecture papers predate the current implementation by a decade, treating the literature as authoritative is a methodological error, not a shortcut.</p>
+
+  <h3>2.2 Reproducing this study</h3>
+  <p>The draft anticipated that the repositories would be hard to reach &mdash; GitLab renders file contents client-side, so HTTP fetch returns an application shell rather than source, and the associated TWikis are SSO-gated. Both observations are correct, and both are avoidable: the repositories are Apache-2.0 and clone anonymously over HTTPS without CERN credentials. No SSO, no Point&nbsp;1 access, and no TDAQ release install is needed to reproduce every claim in &sect;&sect;3&ndash;6.</p>
+
+  <pre><code><span class="c"># Everything in this report is derivable from these two clones.</span>
+git clone --depth 1 https://gitlab.cern.ch/atlas-tdaq-software/RunControl.git
+git clone --depth 1 https://gitlab.cern.ch/atlas-tdaq-software/ProcessManager.git</code></pre>
+
+  <div class="note">
+    <h4>Consequence for the WP1 budget</h4>
+    <p>The draft budgeted time for credential acquisition before the service study could begin. That dependency is removed for the data-model work: the full RC and PMG data models are recoverable offline, today. Credentials remain on the critical path only for Tier&nbsp;2 &mdash; see &sect;7 &mdash; which means WP1's remaining unknowns are now about <em>access</em>, not about <em>structure</em>.</p>
+  </div>
+
+  <h3>2.3 What "verified" means here</h3>
+  <p>A state, command, attribute or method is called <strong>verified</strong> when it was read from a declaration in source (E1/E2) and, where a string representation exists, cross-checked against the mapping that produces it. Every state and command name in &sect;3 was checked both ways: the enumerator exists, and its externally visible string is confirmed. This matters because the agent will match on strings, not enumerators, and a name that exists in C++ but is published differently would break silently.</p>
+</section>
+
+<!-- ================= 3 ================= -->
+<section class="sec" id="s3">
+  <span class="secnum">03</span>
+  <h2>Run Control: the verified data model</h2>
+  <p class="lede">Run Control enforces uniform state across the thousands of applications that make up a data-taking partition. For agent purposes it is three things: a tree, a state machine, and a status record published to the Information Service.</p>
+
+  <h3>3.1 The control tree</h3>
+  <p>The draft's description of the hierarchy is accurate and survives verification. A Root Controller supervises the partition; Segment Controllers beneath it group detector subsystems as defined by OKS; leaf nodes are controlled applications. Commands propagate down; each controller forwards a transition to its children, awaits their asynchronous replies, aggregates what they report, and only then updates itself.</p>
+
+  <p>One structural detail matters for the agent and is not obvious from the architecture papers: the Root Controller runs a <em>different</em> state machine from everything below it. The FSM is a template parameterised on its initial state, and only two initial states are legal &mdash; <code>NONE</code> for the Root Controller, <code>INITIAL</code> for every child controller and leaf application. The Root Controller's table includes transitions to and from <code>NONE</code>; a child's table does not contain them at all.</p>
+
+  <div class="note">
+    <h4>Why the agent must care</h4>
+    <p>"Which transitions are legal from here?" &mdash; one of the RC agent's in-scope questions &mdash; has different answers for the Root Controller and for a segment controller <em>in the same state</em>. <code>SHUTDOWN</code> and <code>RELOAD_DB</code> exist only at the root. An agent that models one FSM for all nodes will offer illegal transitions on four-fifths of the tree.</p>
+  </div>
+
+  <h3>3.2 The finite state machine, verified</h3>
+  <p>Eleven states, twenty-three commands. The figure below is the transition table as implemented, not as documented.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 1180 400" role="img" aria-label="Run Control finite state machine: NONE to INITIAL to CONFIGURED to CONNECTED to RUNNING, then a five-state ordered stop chain returning to CONNECTED">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+          <marker id="ahs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--signal)"/>
+          </marker>
+          <marker id="ahm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--muted)"/>
+          </marker>
+        </defs>
+
+        <!-- row 1 -->
+        <g>
+          <rect x="20" y="60" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="85" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">NONE</text>
+          <text x="85" y="97" text-anchor="middle" font-size="9" fill="var(--muted)">root only</text>
+
+          <rect x="250" y="60" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="315" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">INITIAL</text>
+          <text x="315" y="97" text-anchor="middle" font-size="9" fill="var(--muted)">child start</text>
+
+          <rect x="480" y="60" width="130" height="46" rx="4" fill="var(--fsm-soft)" stroke="var(--fsm)"/>
+          <text x="545" y="88" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fsm)">CONFIGURED</text>
+
+          <rect x="710" y="60" width="130" height="46" rx="4" fill="var(--fsm-soft)" stroke="var(--fsm)" stroke-width="2"/>
+          <text x="775" y="88" text-anchor="middle" font-size="13" font-weight="600" fill="var(--fsm)">CONNECTED</text>
+
+          <rect x="940" y="60" width="130" height="46" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="1005" y="82" text-anchor="middle" font-size="13" font-weight="600" fill="var(--pmg)">RUNNING</text>
+          <text x="1005" y="97" text-anchor="middle" font-size="9" fill="var(--pmg)">taking data</text>
+        </g>
+
+        <!-- forward arrows -->
+        <g stroke="var(--ink-2)" stroke-width="1.4" fill="none" marker-end="url(#ah)">
+          <path d="M150,76 L244,76"/><path d="M380,76 L474,76"/>
+          <path d="M610,76 L704,76"/><path d="M840,76 L934,76"/>
+        </g>
+        <g font-size="10" text-anchor="middle" fill="var(--ink-2)">
+          <text x="197" y="69">INITIALIZE</text><text x="427" y="69">CONFIGURE</text>
+          <text x="660" y="69">CONNECT</text><text x="887" y="69">START</text>
+        </g>
+
+        <!-- reverse arrows -->
+        <g stroke="var(--muted)" stroke-width="1.1" fill="none" marker-end="url(#ahm)" stroke-dasharray="4 3">
+          <path d="M244,96 L156,96"/><path d="M474,96 L386,96"/><path d="M704,96 L616,96"/>
+        </g>
+        <g font-size="9.5" text-anchor="middle" fill="var(--muted)">
+          <text x="200" y="112">SHUTDOWN</text><text x="430" y="112">UNCONFIGURE</text><text x="660" y="112">DISCONNECT</text>
+        </g>
+
+        <!-- section divider label -->
+        <text x="20" y="180" font-size="10" font-weight="600" fill="var(--signal)" letter-spacing="1.4">THE ORDERED DRAIN &mdash; STOP EXPANDS TO SIX SUB-TRANSITIONS, RIGHT TO LEFT</text>
+        <line x1="20" y1="192" x2="1160" y2="192" stroke="var(--rule)" stroke-width="1"/>
+
+        <!-- row 2 -->
+        <g>
+          <rect x="940" y="250" width="145" height="46" rx="4" fill="var(--signal-soft)" stroke="var(--signal)"/>
+          <text x="1012" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--signal)">ROIBSTOPPED</text>
+
+          <rect x="710" y="250" width="145" height="46" rx="4" fill="var(--signal-soft)" stroke="var(--signal)"/>
+          <text x="782" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--signal)">DCSTOPPED</text>
+
+          <rect x="480" y="250" width="145" height="46" rx="4" fill="var(--signal-soft)" stroke="var(--signal)"/>
+          <text x="552" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--signal)">HLTSTOPPED</text>
+
+          <rect x="250" y="250" width="145" height="46" rx="4" fill="var(--signal-soft)" stroke="var(--signal)"/>
+          <text x="322" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--signal)">SFOSTOPPED</text>
+
+          <rect x="20" y="250" width="145" height="46" rx="4" fill="var(--signal-soft)" stroke="var(--signal)"/>
+          <text x="92" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="var(--signal)">GTHSTOPPED</text>
+        </g>
+
+        <!-- running -> roibstopped -->
+        <path d="M1005,106 C1005,180 1012,190 1012,244" stroke="var(--signal)" stroke-width="1.5" fill="none" marker-end="url(#ahs)"/>
+        <text x="1022" y="222" font-size="10" fill="var(--signal)">STOPROIB</text>
+
+        <!-- chain right to left -->
+        <g stroke="var(--signal)" stroke-width="1.5" fill="none" marker-end="url(#ahs)">
+          <path d="M940,273 L861,273"/><path d="M710,273 L631,273"/>
+          <path d="M480,273 L401,273"/><path d="M250,273 L171,273"/>
+        </g>
+        <g font-size="10" text-anchor="middle" fill="var(--signal)">
+          <text x="898" y="266">STOPDC</text><text x="668" y="266">STOPHLT</text>
+          <text x="438" y="266">STOPRECORDING</text><text x="208" y="266">STOPGATHERING</text>
+        </g>
+
+        <!-- return path -->
+        <path d="M92,296 L92,350 L667,350 L667,170 L775,170 L775,112"
+              stroke="var(--signal)" stroke-width="1.5" fill="none" marker-end="url(#ahs)"/>
+        <text x="360" y="343" font-size="10" fill="var(--signal)">STOPARCHIVING &mdash; returns to CONNECTED, not to CONFIGURED</text>
+
+        <!-- absent note -->
+        <text x="1105" y="345" font-size="9.5" text-anchor="end" fill="var(--muted)">ABSENT &mdash; default / not-yet-known, never entered by a transition</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 1</b> The Run Control FSM as implemented. Solid arrows are forward transitions, dashed arrows are the reverse path. The amber chain is the ordered drain that <code>STOP</code> expands into: it stops the Region-of-Interest Builder first and the archiver last, so that no stage is torn down while an upstream stage is still feeding it. Note the drain returns to <code>CONNECTED</code> &mdash; a stopped run is one <code>START</code> away from running again.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 2</b> The eleven FSM states, with published string representation</caption>
+    <thead><tr><th>#</th><th>Enumerator</th><th>Published string</th><th>Reachable by</th><th class="wrap">Meaning for the agent</th></tr></thead>
+    <tbody>
+      <tr><td class="m">0</td><td class="m">ABSENT</td><td class="m">"ABSENT"</td><td><span class="pill p-warn">never</span></td><td class="wrap">Default value. Means "no information", not a real condition. The agent must treat it as unknown and refuse rather than report.</td></tr>
+      <tr><td class="m">1</td><td class="m">NONE</td><td class="m">"NONE"</td><td>Root only</td><td class="wrap">Root Controller's initial state. Nothing has been created yet.</td></tr>
+      <tr><td class="m">2</td><td class="m">INITIAL</td><td class="m">"INITIAL"</td><td>All nodes</td><td class="wrap">Initial state of children and leaves. Process exists, nothing configured.</td></tr>
+      <tr><td class="m">3</td><td class="m">CONFIGURED</td><td class="m">"CONFIGURED"</td><td>All nodes</td><td class="wrap">Hardware and buffers configured; no inter-application connections yet.</td></tr>
+      <tr><td class="m">4</td><td class="m">CONNECTED</td><td class="m">"CONNECTED"</td><td>All nodes</td><td class="wrap"><strong>F1.</strong> Dataflow connections established, run not started. Also the state a completed stop returns to.</td></tr>
+      <tr><td class="m">5</td><td class="m">GTHSTOPPED</td><td class="m">"GTHSTOPPED"</td><td>Drain</td><td class="wrap">Event gathering stopped. Second-to-last drain step.</td></tr>
+      <tr><td class="m">6</td><td class="m">SFOSTOPPED</td><td class="m">"SFOSTOPPED"</td><td>Drain</td><td class="wrap">Sub-Farm Output stopped; recording to disk has ceased.</td></tr>
+      <tr><td class="m">7</td><td class="m">HLTSTOPPED</td><td class="m">"HLTSTOPPED"</td><td>Drain</td><td class="wrap">High-Level Trigger stopped.</td></tr>
+      <tr><td class="m">8</td><td class="m">DCSTOPPED</td><td class="m">"DCSTOPPED"</td><td>Drain</td><td class="wrap">Data Collection stopped.</td></tr>
+      <tr><td class="m">9</td><td class="m">ROIBSTOPPED</td><td class="m">"ROIBSTOPPED"</td><td>Drain</td><td class="wrap">Region-of-Interest Builder stopped. First drain step; triggers no longer enter the system.</td></tr>
+      <tr><td class="m">10</td><td class="m">RUNNING</td><td class="m">"RUNNING"</td><td>All nodes</td><td class="wrap"><span class="pill p-warn">collides</span> Taking data. Not the same as the PMG <code>RUNNING</code> &mdash; see &sect;5.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>The enumerator order is not arbitrary and the source explicitly asks that it be preserved: the numeric value orders the states along the run lifecycle, and the shortest-path routine that computes "how do I get from state A to state B" relies on the enumeration index as a graph vertex identifier. The agent can therefore use the ordinal to answer <em>relative</em> questions &mdash; is this node further along than that one &mdash; but only within the drain chain's own ordering, which runs backwards relative to the index.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 3</b> Commands, classified. Multi-step commands expand into others and never appear as a single transition</caption>
+    <thead><tr><th>Command</th><th>Kind</th><th class="wrap">Effect</th></tr></thead>
+    <tbody>
+      <tr><td class="m">INITIALIZE</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">NONE &rarr; INITIAL. Root only.</td></tr>
+      <tr><td class="m">CONFIGURE</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">INITIAL &rarr; CONFIGURED.</td></tr>
+      <tr><td class="m">CONNECT</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">CONFIGURED &rarr; CONNECTED.</td></tr>
+      <tr><td class="m">START</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">CONNECTED &rarr; RUNNING. Aliased as <code>SOR</code> (start of run).</td></tr>
+      <tr><td class="m">STOPROIB &hellip; STOPARCHIVING</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">The six ordered drain steps of Figure 1.</td></tr>
+      <tr><td class="m">DISCONNECT</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">CONNECTED &rarr; CONFIGURED.</td></tr>
+      <tr><td class="m">UNCONFIGURE</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">CONFIGURED &rarr; INITIAL.</td></tr>
+      <tr><td class="m">SHUTDOWN</td><td><span class="pill p-fsm">transition</span></td><td class="wrap">Any state &rarr; NONE. Root only. Legal even from within NONE, to interrupt an in-flight transition.</td></tr>
+      <tr><td class="m">CONFIG</td><td><span class="pill p-warn">multi-step</span></td><td class="wrap">CONFIGURE then CONNECT.</td></tr>
+      <tr><td class="m">STOP</td><td><span class="pill p-warn">multi-step</span></td><td class="wrap">All six drain steps in order.</td></tr>
+      <tr><td class="m">UNCONFIG</td><td><span class="pill p-warn">multi-step</span></td><td class="wrap">DISCONNECT then UNCONFIGURE.</td></tr>
+      <tr><td class="m">RESYNCH</td><td><span class="pill p-ok">in-state</span></td><td class="wrap">Re-synchronisation broadcast. Legal only in RUNNING.</td></tr>
+      <tr><td class="m">RELOAD_DB</td><td><span class="pill p-ok">in-state</span></td><td class="wrap">Reload configuration. Legal only in NONE; <em>deferred</em> elsewhere rather than rejected.</td></tr>
+      <tr><td class="m">USERBROADCAST</td><td><span class="pill p-ok">in-state</span></td><td class="wrap">Execute a user command and broadcast to children. Legal in every state.</td></tr>
+      <tr><td class="m">INIT_FSM, STOP_FSM</td><td><span class="pill p-mut">internal</span></td><td class="wrap">FSM lifecycle. Never operator-visible; the agent should not surface them.</td></tr>
+      <tr><td class="m">NEXT_TRANSITION</td><td><span class="pill p-mut">internal</span></td><td class="wrap">"Advance one step in the current direction." Direction depends on a hidden <em>going-up</em> flag.</td></tr>
+      <tr><td class="m">SUB_TRANSITION</td><td><span class="pill p-mut">internal</span></td><td class="wrap">Sub-transition dispatch.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note danger">
+    <h4>Trap: RELOAD_DB is deferred, not refused</h4>
+    <p>Outside <code>NONE</code>, <code>RELOAD_DB</code> is queued rather than rejected, in a deferred queue holding exactly one event. An operator asking "did my reload take effect?" can be told "the command was accepted" and have that be true while nothing has happened yet, possibly for hours. The RC agent must distinguish <em>accepted</em>, <em>deferred</em> and <em>applied</em>. This is the clearest case in either service where the honest answer is three-valued and the tempting answer is binary.</p>
+  </div>
+
+  <div class="note warn">
+    <h4>Two documentation defects found in-repo</h4>
+    <p>Recorded because they will mislead anyone repeating this study, and because they justify the E1-over-E3 rule in Table 1.</p>
+    <ul>
+      <li><strong>EOR alias mismatch.</strong> The header comment states that <code>EOR</code> (end of run) aliases <code>STOPRECORDING</code>. The implementation defines it as <code>STOPARCHIVING</code> &mdash; the last drain step, not the fourth. The implementation is authoritative; an agent that resolved "end of run" via the comment would report the run as ended two states early.</li>
+      <li><strong>Stale <code>BOOTED</code> reference.</strong> A worked example in the path-finding code still narrates a route through <code>BOOTED</code>, a state that no longer exists in the enumeration. This is a fossil of the pre-2012 FSM, and it is almost certainly the proximate source of the draft's state list.</li>
+    </ul>
+  </div>
+
+  <h3>3.3 Error and busy are orthogonal to state</h3>
+  <p>The draft says a failing node "marks ERROR". No <code>ERROR</code> state exists. What exists instead is richer and must be modelled separately from the FSM:</p>
+
+  <div class="defs">
+    <div><dt>errorReasons</dt><dd>A list of strings. Empty means healthy. Non-empty means the node is in error <em>while still occupying a normal FSM state</em>. This is the actual answer to "which components are in error".</dd></div>
+    <div><dt>badChildren</dt><dd>A list of child names the node considers unhealthy. This is how error localises down the tree, and it is what lets the agent answer "the segment is unhealthy because of these two applications" rather than just "the segment is unhealthy".</dd></div>
+    <div><dt>busy</dt><dd>Boolean. The node is executing a command. Distinct from transitioning.</dd></div>
+    <div><dt>transitioning</dt><dd>Boolean. The node is mid-transition, so its reported state is stale by construction.</dd></div>
+    <div><dt>fault</dt><dd>Boolean. Internal error of the controller itself, as opposed to a problem it is reporting about its children.</dd></div>
+    <div><dt>fullyInitialized</dt><dd>Boolean. The node has completed its handshake with Process Management. See &sect;6 &mdash; this is the RC/PMG join in the data model.</dd></div>
+  </div>
+
+  <p>The command-refusal vocabulary confirms the same separation from the other direction. When a command is rejected the failure carries a reason drawn from four values: <code>BUSY</code>, <code>NOT_ALLOWED</code> (refused by the Access Manager), <code>IN_ERROR</code>, and <code>UNEXPECTED</code>. Busy and in-error are distinct refusal causes, which they could not be if error were a state.</p>
+
+  <div class="note">
+    <h4>Design consequence &mdash; RC agent response contract</h4>
+    <p>The draft's response contract required partition, controller name, timestamp, and a distinction between own state and subtree state. WP1 adds a hard requirement: <strong>state must never be returned alone.</strong> The minimum honest unit is <code>{state, transitioning, busy, errorReasons, badChildren, timestamp}</code>. A node reporting <code>RUNNING</code> with two entries in <code>errorReasons</code> is a normal and important condition, and any contract that lets the agent return just <code>RUNNING</code> makes that condition unreportable.</p>
+  </div>
+
+  <h3>3.4 The CORBA surface</h3>
+  <p>Run Control exposes a single operator-relevant interface, <code>rc::commander</code> &mdash; not <code>rc::controller</code> as the draft states (F6). Its methods split cleanly for the read-only scope:</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 4</b> <code>rc::commander</code> &mdash; the Tier 3 surface, classified</caption>
+    <thead><tr><th>Method</th><th>Class</th><th class="wrap">Notes for the agent</th></tr></thead>
+    <tbody>
+      <tr><td class="m">status(out)</td><td><span class="pill p-read">read</span></td><td class="wrap">The node's own status, as an encoded string. In scope.</td></tr>
+      <tr><td class="m">childStatus(in, out)</td><td><span class="pill p-read">read</span></td><td class="wrap">Status of one named child. Raises <code>UnknownChild</code> &mdash; a clean, well-typed "no such thing" the agent can turn into a calibrated refusal rather than a guess.</td></tr>
+      <tr><td class="m">makeTransition</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Out of scope. Would drive the FSM.</td></tr>
+      <tr><td class="m">executeCommand</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Out of scope.</td></tr>
+      <tr><td class="m">setError</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Out of scope. Would inject error state.</td></tr>
+      <tr><td class="m">updateChild</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Out of scope. Internal tree bookkeeping.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Both read methods return an <em>encoded string</em> rather than a structure, deserialised by the same command class that produced it. The gateway of &sect;8 must own that decoding: exposing an opaque serialised blob to a language model and hoping it parses correctly is exactly the failure mode the semantic mapping layer exists to prevent.</p>
+
+  <p>The decoded status record carries: application name, FSM state, <code>transitioning</code>, <code>busy</code>, <code>fullyInitialized</code>, an error-reason list, and two timestamps.</p>
+
+  <div class="note danger">
+    <h4>Trap: the two timestamps are not interchangeable</h4>
+    <p>The status record carries an <em>information time tag</em> and a <em>wall time</em>, both in nanoseconds. The source is explicit that the time tag "may have no relationship at all with the clock time" &mdash; it is a monotonic ordering token, used by the publisher to discard out-of-order updates, not a clock reading. Only the wall time is a real timestamp.</p>
+    <p>An agent that renders the time tag as a date will produce plausible, precise, and completely fictitious answers to "when did this happen" &mdash; the worst possible failure shape for a shifter-facing tool. The framework must expose these as two differently-typed fields and must never let a monotonic token reach a date formatter.</p>
+  </div>
+
+  <h3>3.5 What Run Control publishes to the Information Service</h3>
+  <p>RC writes into an IS server named <code>RunCtrl</code>, under three object-naming conventions. This resolves the RC half of F5 without needing a live partition.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 5</b> RC objects in the Information Service</caption>
+    <thead><tr><th>Object name pattern</th><th>IS class</th><th class="wrap">Carries</th></tr></thead>
+    <tbody>
+      <tr><td class="m">RunCtrl.&lt;app&gt;</td><td class="m">RCStateInfo</td><td class="wrap">FSM state and the full health record &mdash; the primary RC agent source</td></tr>
+      <tr><td class="m">RunCtrl.Supervision.&lt;app&gt;</td><td class="m">DAQApplicationInfo</td><td class="wrap">RC's <em>view of the process</em> behind the application</td></tr>
+      <tr><td class="m">RunCtrl.TriggerState</td><td class="m">TriggerStateNamed</td><td class="wrap">Trigger state, published by the Root Controller</td></tr>
+      <tr><td class="m">RunCtrl.LastStartTime</td><td class="m">&mdash;</td><td class="wrap">Run start time, published by the Root Controller</td></tr>
+      <tr><td class="m">RunParams.*</td><td class="m">RunParamsNamed</td><td class="wrap">Run parameters (separate IS server)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 6</b> <code>RCStateInfo</code> attributes, recovered from the publisher</caption>
+    <thead><tr><th>Attribute</th><th>Type</th><th class="wrap">Agent use</th></tr></thead>
+    <tbody>
+      <tr><td class="m">state</td><td class="m">string</td><td class="wrap">FSM state, as the Table 2 string</td></tr>
+      <tr><td class="m">busy</td><td class="m">bool</td><td class="wrap">Executing a command</td></tr>
+      <tr><td class="m">transitioning</td><td class="m">bool</td><td class="wrap">Mid-transition; <code>state</code> is stale</td></tr>
+      <tr><td class="m">fault</td><td class="m">bool</td><td class="wrap">Controller's own internal error</td></tr>
+      <tr><td class="m">errorReasons</td><td class="m">string[]</td><td class="wrap">The real error query target</td></tr>
+      <tr><td class="m">badChildren</td><td class="m">string[]</td><td class="wrap">Error localisation down the tree</td></tr>
+      <tr><td class="m">transitionTime</td><td class="m">time</td><td class="wrap">Last transition &mdash; answers "when did it last change state"</td></tr>
+      <tr><td class="m">currentTransitionName</td><td class="m">string</td><td class="wrap">In-flight transition, if any</td></tr>
+      <tr><td class="m">currentTransitionArgs</td><td class="m">string[]</td><td class="wrap">Omitted when identical to the command name</td></tr>
+      <tr><td class="m">currentTransitionFull</td><td class="m">string</td><td class="wrap">Serialised form</td></tr>
+      <tr><td class="m">lastTransitionName / Args / Full</td><td class="m">string[]</td><td class="wrap">Previous transition, same shape</td></tr>
+      <tr><td class="m">lastCmdName / Args / Full</td><td class="m">string[]</td><td class="wrap">Last non-transition command</td></tr>
+      <tr><td class="m">fullyInitialized</td><td class="m">bool</td><td class="wrap">PMG handshake complete &mdash; see &sect;6</td></tr>
+      <tr><td class="m">action_timeout</td><td class="m">int</td><td class="wrap">Configured timeout &mdash; lets the agent say whether a slow transition is <em>late</em> or merely slow</td></tr>
+      <tr><td class="m">short_timeout</td><td class="m">int</td><td class="wrap">Configured exit timeout</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Two details from the publisher affect how the agent should read this. First, the <code>*Args</code> fields are <em>omitted</em> when the argument list is just the command name repeated &mdash; so an absent field means "no distinct arguments", not "no data". Second, the publisher drops any update whose time tag precedes the last one written, logging an out-of-order event. IS therefore holds the latest-by-monotonic-tag record, not the latest-by-arrival record, which is the correct behaviour for the agent to assume when reasoning about staleness.</p>
+
+  <p><code>DAQApplicationInfo</code>, at <code>RunCtrl.Supervision.&lt;app&gt;</code>, carries: application name, host, <code>status</code> (the supervision vocabulary of &sect;5), <code>membership</code>, <code>restarting</code>, <code>notResponding</code>, <code>exitCode</code>, <code>exitSignal</code>, and <code>parentName</code>. That <code>parentName</code> field is the cheapest way to reconstruct the control tree from IS alone, without reading OKS.</p>
+</section>
+
+<!-- ================= 4 ================= -->
+<section class="sec" id="s4">
+  <span class="secnum">04</span>
+  <h2>Process Management: the verified data model</h2>
+  <p class="lede">Where Run Control owns logical state, Process Management owns the operating-system lifecycle of every TDAQ binary. Its data model is smaller, better documented in-repo, and &mdash; as the draft argues &mdash; the better pilot for WP3.</p>
+
+  <h3>4.1 Architecture</h3>
+  <p>The draft's three-component description is verified: clients, a partition-aware server, and root-privileged launchers on each compute node. The naming convention is worth recording because the agent will need it for Tier 3 lookups: a Process Manager server registers in IPC as <code>AGENT_&lt;host full name&gt;</code>.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 1000 330" role="img" aria-label="Process Management architecture: clients call a partition-aware server which routes to per-host launchers that fork target processes and publish to the Information Service">
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--ink-2)"/>
+          </marker>
+          <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--pmg)"/>
+          </marker>
+        </defs>
+
+        <!-- clients -->
+        <rect x="20" y="30" width="180" height="90" rx="5" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+        <text x="110" y="52" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">PMG CLIENTS</text>
+        <text x="110" y="72" text-anchor="middle" font-size="10" fill="var(--muted)">Run Control</text>
+        <text x="110" y="88" text-anchor="middle" font-size="10" fill="var(--muted)">Operator GUI, CLI</text>
+        <text x="110" y="104" text-anchor="middle" font-size="10" fill="var(--muted)">C++ / Python / Java</text>
+
+        <!-- server -->
+        <rect x="300" y="20" width="200" height="110" rx="5" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="400" y="44" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)">PMG SERVER</text>
+        <text x="400" y="62" text-anchor="middle" font-size="9.5" fill="var(--accent)">partition-aware</text>
+        <line x1="316" y1="72" x2="484" y2="72" stroke="var(--accent)" stroke-width=".7" opacity=".45"/>
+        <text x="400" y="88" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">validates &middot; Access Manager</text>
+        <text x="400" y="104" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">Resource Manager &middot; routes</text>
+        <text x="400" y="120" text-anchor="middle" font-size="9" fill="var(--muted)">IPC: AGENT_&lt;host&gt;</text>
+
+        <!-- launchers -->
+        <g>
+          <rect x="620" y="18" width="170" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="705" y="38" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">LAUNCHER</text>
+          <text x="705" y="55" text-anchor="middle" font-size="9" fill="var(--muted)">host A &middot; root, drops priv</text>
+
+          <rect x="620" y="82" width="170" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="705" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">LAUNCHER</text>
+          <text x="705" y="119" text-anchor="middle" font-size="9" fill="var(--muted)">host B</text>
+
+          <rect x="620" y="146" width="170" height="52" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="705" y="166" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">LAUNCHER</text>
+          <text x="705" y="183" text-anchor="middle" font-size="9" fill="var(--muted)">host N</text>
+        </g>
+
+        <!-- processes -->
+        <rect x="855" y="82" width="125" height="52" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)"/>
+        <text x="917" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)">PROCESS</text>
+        <text x="917" y="119" text-anchor="middle" font-size="9" fill="var(--pmg)">fork + exec</text>
+
+        <!-- arrows -->
+        <g stroke="var(--ink-2)" stroke-width="1.4" fill="none" marker-end="url(#ah2)">
+          <path d="M200,75 L294,75"/>
+          <path d="M500,60 L614,44"/><path d="M500,75 L614,108"/><path d="M500,90 L614,172"/>
+          <path d="M790,108 L849,108"/>
+        </g>
+        <text x="247" y="68" text-anchor="middle" font-size="9.5" fill="var(--muted)">CORBA</text>
+
+        <!-- waitpid feedback -->
+        <path d="M917,134 C917,175 850,180 795,180" stroke="var(--pmg)" stroke-width="1.3" fill="none" marker-end="url(#ah3)" stroke-dasharray="4 3"/>
+        <text x="880" y="160" text-anchor="middle" font-size="9" fill="var(--pmg)">waitpid</text>
+
+        <!-- IS -->
+        <rect x="300" y="242" width="200" height="58" rx="5" fill="var(--sup-soft)" stroke="var(--sup)" stroke-width="2"/>
+        <text x="400" y="266" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sup)">INFORMATION SERVICE</text>
+        <text x="400" y="284" text-anchor="middle" font-size="9.5" fill="var(--sup)">PMGPublishedProcessData</text>
+
+        <path d="M705,198 C705,250 560,271 506,271" stroke="var(--sup)" stroke-width="1.5" fill="none" marker-end="url(#ah2)"/>
+        <text x="640" y="248" text-anchor="middle" font-size="9.5" fill="var(--sup)">publishes /proc metrics</text>
+
+        <text x="20" y="271" font-size="10" font-weight="600" fill="var(--accent)" letter-spacing=".8">THE AGENT READS HERE &rarr;</text>
+        <text x="20" y="288" font-size="9.5" fill="var(--muted)">not from the CORBA path above</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 2</b> Process Management, and where an agent should attach. Supervision is event-driven &mdash; the launcher blocks on <code>waitpid</code> and learns of an exit immediately rather than by polling. Because every launcher publishes process state and <code>/proc</code>-derived metrics into the Information Service, the agent can answer nearly every PMG question from IS alone, without ever entering the CORBA path.</figcaption>
+  </figure>
+
+  <h3>4.2 The process state machine</h3>
+  <p>Nine states, with both a numeric code and a string form published to IS. Note that the two forms differ in case and spacing &mdash; a real trap for string matching.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 1000 320" role="img" aria-label="PMG process state machine: NOTAV, REQUESTED, LAUNCHING, CREATED, RUNNING, with terminal states FAILED, SYNCERROR, EXITED and SIGNALED">
+        <defs>
+          <marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--pmg)"/>
+          </marker>
+          <marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 z" fill="var(--danger)"/>
+          </marker>
+        </defs>
+
+        <g>
+          <rect x="20" y="50" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="85" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">NOTAV</text>
+          <text x="85" y="87" text-anchor="middle" font-size="9" fill="var(--muted)">code 0</text>
+
+          <rect x="190" y="50" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="255" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">REQUESTED</text>
+          <text x="255" y="87" text-anchor="middle" font-size="9" fill="var(--muted)">code 1</text>
+
+          <rect x="360" y="50" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="425" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">LAUNCHING</text>
+          <text x="425" y="87" text-anchor="middle" font-size="9" fill="var(--muted)">code 2</text>
+
+          <rect x="530" y="50" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="595" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">CREATED</text>
+          <text x="595" y="87" text-anchor="middle" font-size="9" fill="var(--muted)">code 3</text>
+
+          <rect x="700" y="50" width="130" height="46" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="765" y="72" text-anchor="middle" font-size="12" font-weight="600" fill="var(--pmg)">RUNNING</text>
+          <text x="765" y="87" text-anchor="middle" font-size="9" fill="var(--pmg)">code 4 &middot; alive</text>
+        </g>
+
+        <g stroke="var(--pmg)" stroke-width="1.4" fill="none" marker-end="url(#ah4)">
+          <path d="M150,73 L184,73"/><path d="M320,73 L354,73"/>
+          <path d="M490,73 L524,73"/><path d="M660,73 L694,73"/>
+        </g>
+
+        <text x="20" y="150" font-size="10" font-weight="600" fill="var(--danger)" letter-spacing="1.2">TERMINAL STATES</text>
+        <line x1="20" y1="162" x2="980" y2="162" stroke="var(--rule)"/>
+
+        <g>
+          <rect x="190" y="215" width="130" height="46" rx="4" fill="var(--danger-soft)" stroke="var(--danger)"/>
+          <text x="255" y="237" text-anchor="middle" font-size="12" font-weight="600" fill="var(--danger)">FAILED</text>
+          <text x="255" y="252" text-anchor="middle" font-size="9" fill="var(--danger)">code 8 &middot; never started</text>
+
+          <rect x="430" y="215" width="130" height="46" rx="4" fill="var(--danger-soft)" stroke="var(--danger)"/>
+          <text x="495" y="237" text-anchor="middle" font-size="12" font-weight="600" fill="var(--danger)">SYNCERROR</text>
+          <text x="495" y="252" text-anchor="middle" font-size="9" fill="var(--danger)">code 7 &middot; timeout</text>
+
+          <rect x="640" y="215" width="130" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="705" y="237" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">EXITED</text>
+          <text x="705" y="252" text-anchor="middle" font-size="9" fill="var(--muted)">code 5 &middot; exit code</text>
+
+          <rect x="830" y="215" width="130" height="46" rx="4" fill="var(--danger-soft)" stroke="var(--danger)"/>
+          <text x="895" y="237" text-anchor="middle" font-size="12" font-weight="600" fill="var(--danger)">SIGNALED</text>
+          <text x="895" y="252" text-anchor="middle" font-size="9" fill="var(--danger)">code 6 &middot; crash</text>
+        </g>
+
+        <g stroke="var(--danger)" stroke-width="1.3" fill="none" marker-end="url(#ah5)">
+          <path d="M425,96 C425,160 300,175 268,209"/>
+          <path d="M595,96 C595,160 520,178 500,209"/>
+          <path d="M765,96 C765,150 730,180 712,209"/>
+          <path d="M765,96 C800,150 860,180 885,209"/>
+        </g>
+        <text x="330" y="145" font-size="9" fill="var(--danger)">start failed</text>
+        <text x="560" y="152" font-size="9" fill="var(--danger)">no confirm</text>
+        <text x="640" y="140" font-size="9" fill="var(--ink-2)">normal exit</text>
+        <text x="840" y="140" font-size="9" fill="var(--danger)">signal</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 3</b> The PMG process lifecycle. <code>SYNCERROR</code> is the state most likely to confuse an operator: the process may well be alive, but it failed to confirm within the timeout, so PMG's record and the machine's reality disagree. An agent must report it as "PMG cannot confirm this process" &mdash; never as "the process is down".</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 7</b> PMG process states. The published string is <em>not</em> the enumerator name</caption>
+    <thead><tr><th>Code</th><th>Enumerator</th><th>Published string</th><th class="wrap">Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="m">0</td><td class="m">NOTAV</td><td class="m">"not defined"</td><td class="wrap">No information available</td></tr>
+      <tr><td class="m">1</td><td class="m">REQUESTED</td><td class="m">"requested"</td><td class="wrap">Start has been requested</td></tr>
+      <tr><td class="m">2</td><td class="m">LAUNCHING</td><td class="m">"launching"</td><td class="wrap">Launcher started, binary not yet exec'd</td></tr>
+      <tr><td class="m">3</td><td class="m">CREATED</td><td class="m">"created"</td><td class="wrap">Process object created</td></tr>
+      <tr><td class="m">4</td><td class="m">RUNNING</td><td class="m">"running"</td><td class="wrap"><span class="pill p-warn">collides</span> Process is alive. Says nothing about data taking.</td></tr>
+      <tr><td class="m">5</td><td class="m">EXITED</td><td class="m">"exited"</td><td class="wrap">Exited normally; <code>exit</code> holds the code</td></tr>
+      <tr><td class="m">6</td><td class="m">SIGNALED</td><td class="m">"signaled"</td><td class="wrap">Killed by a signal; <code>signal</code> names it. This is the crash case.</td></tr>
+      <tr><td class="m">7</td><td class="m">SYNCERROR</td><td class="m">"sync error"</td><td class="wrap">Confirmation timeout elapsed. Ambiguous, not terminal-negative.</td></tr>
+      <tr><td class="m">8</td><td class="m">FAILED</td><td class="m">"failure"</td><td class="wrap">Failed to start at all</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note warn">
+    <h4>Trap: enumerator names and published strings diverge</h4>
+    <p>Four of the nine differ by more than case: <code>NOTAV</code> publishes as <code>"not defined"</code>, <code>SYNCERROR</code> as <code>"sync error"</code> (with a space), and <code>FAILED</code> as <code>"failure"</code> (a different word). Any agent tool that filters IS on the <code>state</code> string using enumerator names will silently return empty results for exactly the failure conditions an operator most needs to find. Prefer the numeric <code>state_code</code> for filtering and the string only for display &mdash; and put that rule in the semantic mapping layer, not in each agent.</p>
+  </div>
+
+  <h3>4.3 The PMG Handle, corrected</h3>
+  <p>Processes are addressed network-wide by a URL-style handle. The draft's grammar omits the optional port (F7):</p>
+
+  <pre><code><span class="c">// verified against the handle parser and serialiser</span>
+handle   <span class="k">::=</span> <span class="s">"pmg://"</span> host [ <span class="s">":"</span> port ] <span class="s">"/"</span> partition <span class="s">"/"</span> application <span class="s">"/"</span> id
+
+host        <span class="k">::=</span> fully-qualified host name     <span class="c">// non-empty</span>
+port        <span class="k">::=</span> integer                       <span class="c">// omitted when 0 (the default)</span>
+partition   <span class="k">::=</span> partition name                <span class="c">// non-empty</span>
+application <span class="k">::=</span> OKS application name          <span class="c">// non-empty</span>
+id          <span class="k">::=</span> integer                       <span class="c">// disambiguates reuse of the same app name</span>
+
+<span class="c">// examples</span>
+pmg://pc-tdq-onl-42.cern.ch/ATLAS/TileCal-RCD/17
+pmg://pc-tdq-onl-42.cern.ch:9876/ATLAS/TileCal-RCD/17</code></pre>
+
+  <p>Three parser requirements follow from the implementation. The port is attached to the <em>host</em> field and split off after tokenising on <code>/</code>, so a naive split on <code>/</code> yields a host of <code>host:port</code> that will not match anything. The port is suppressed on output when it equals the default of zero, so the same process may be described by two different handle strings &mdash; handle equality must be structural, not textual. And every one of host, partition, application and id is rejected if empty, which gives the agent a well-defined validation error to convert into a refusal.</p>
+
+  <div class="note">
+    <h4>Why the <code>id</code> field decides the PMG response contract</h4>
+    <p>The <code>id</code> exists to disambiguate multiple processes carrying the same application name in the same partition &mdash; across restarts and across runs. This is precisely why the draft is right to require a timestamp on every PMG answer. "TileCal-RCD is running" is not answerable; "<code>pmg://…/TileCal-RCD/17</code> was running as of 03:14:22" is. The framework should make the unqualified form unrepresentable.</p>
+  </div>
+
+  <h3>4.4 The CORBA surface, classified</h3>
+  <p>PMG's server interface splits far more cleanly into read and mutate than RC's does, which is a further argument for it as the WP3 pilot: the read-only boundary can be enforced by construction rather than by discipline.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 8</b> PMG server interface &mdash; the complete read/mutate classification</caption>
+    <thead><tr><th>Method</th><th>Class</th><th class="wrap">Purpose</th></tr></thead>
+    <tbody>
+      <tr><td class="m">alive()</td><td><span class="pill p-read">read</span></td><td class="wrap">Server liveness probe</td></tr>
+      <tr><td class="m">exists(handle)</td><td><span class="pill p-read">read</span></td><td class="wrap">Does this process exist</td></tr>
+      <tr><td class="m">lookup(app, partition)</td><td><span class="pill p-read">read</span></td><td class="wrap">Resolve an application name to a handle</td></tr>
+      <tr><td class="m">processes(partition)</td><td><span class="pill p-read">read</span></td><td class="wrap">Handles in a partition</td></tr>
+      <tr><td class="m">processes_info(partition)</td><td><span class="pill p-read">read</span></td><td class="wrap">Full status for a partition</td></tr>
+      <tr><td class="m">all_processes()</td><td><span class="pill p-read">read</span></td><td class="wrap">Every handle, all partitions</td></tr>
+      <tr><td class="m">all_processes_info()</td><td><span class="pill p-read">read</span></td><td class="wrap">Full status, all partitions &mdash; the heaviest read; rate-limit it</td></tr>
+      <tr><td class="m">get_info(handle)</td><td><span class="pill p-read">read</span></td><td class="wrap">Full status for one process</td></tr>
+      <tr><td class="m">agentInfo()</td><td><span class="pill p-read">read</span></td><td class="wrap">Host-level load, RAM, swap</td></tr>
+      <tr><td class="m">procFiles(name, maxSize)</td><td><span class="pill p-read">read</span></td><td class="wrap">Retrieve stdout/stderr. Read-only, but returns unbounded operational text &mdash; treat as untrusted input to the model</td></tr>
+      <tr><td class="m">link_client(...)</td><td><span class="pill p-warn">subscribe</span></td><td class="wrap">Register for status callbacks. Read-only in effect, but creates server-side state &mdash; classify separately from both read and mutate</td></tr>
+      <tr><td class="m">request_start / really_start</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Start a process</td></tr>
+      <tr><td class="m">signal / stop / kill / kill_soft</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Signal or terminate a process</td></tr>
+      <tr><td class="m">kill_partition / kill_all</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Mass termination. The highest-consequence calls in either service</td></tr>
+      <tr><td class="m">exit()</td><td><span class="pill p-mut">mutate</span></td><td class="wrap">Shut down the server itself</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note danger">
+    <h4>The classification needs three values, not two</h4>
+    <p>The draft proposes classifying every tool as read or mutate. Table 8 shows two cases that fit neither. <code>link_client</code> creates a server-side subscription: it changes nothing an operator would call state, but it consumes resources on a production server and persists after the query. <code>procFiles</code> returns arbitrary process output straight from a production system into the model's context &mdash; a read that is a prompt-injection surface.</p>
+    <p>Adopt a four-value taxonomy in WP2 &mdash; <span class="pill p-read">read</span> <span class="pill p-warn">read-heavy</span> <span class="pill p-warn">subscribe</span> <span class="pill p-mut">mutate</span> &mdash; and make the read-only build refuse the last two by construction. Retrofitting this after WP3 means reclassifying every tool in all five agents.</p>
+  </div>
+
+  <h3>4.5 What Process Management publishes to IS</h3>
+  <p>This is the strongest single result of WP1 for build velocity. The IS schema ships in the ProcessManager repository as an OKS schema file, fully attributed and described. No live partition is required to build the PMG agent's data model &mdash; F5, resolved.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 9</b> <code>PMGPublishedProcessData</code> &mdash; grouped by what the agent uses it for</caption>
+    <thead><tr><th>Group</th><th>Attributes</th><th class="wrap">Answers</th></tr></thead>
+    <tbody>
+      <tr><td class="wrap"><strong>Identity</strong></td><td class="m">handle, pid, partition, host,<br>app_name, app_id, user_name,<br>host_requesting</td><td class="wrap">Which processes are running, where, under whom. <code>host_requesting</code> records who asked &mdash; useful for "who started this".</td></tr>
+      <tr><td class="wrap"><strong>State</strong></td><td class="m">state, state_code, exit,<br>signal, error_msg</td><td class="wrap">Status; which processes crashed and with what exit code or signal. Filter on <code>state_code</code>, display <code>state</code>.</td></tr>
+      <tr><td class="wrap"><strong>Timing</strong></td><td class="m">start, stop</td><td class="wrap">Uptime. Both are <em>strings</em>, not typed times &mdash; the mapping layer must own parsing and must fail loudly on an unparseable value.</td></tr>
+      <tr><td class="wrap"><strong>Execution context</strong></td><td class="m">executable, arguments, environment,<br>workingdir, library_paths,<br>std_out, std_err, std_in</td><td class="wrap">What binary, with what arguments and environment. Largely duplicates Tier 1 &mdash; prefer OKS when the partition is not live.</td></tr>
+      <tr><td class="wrap"><strong>CPU</strong></td><td class="m">utime, stime, cutime, cstime,<br>num_threads</td><td class="wrap">CPU behaviour over a period. Cumulative counters in ms &mdash; must be differenced, never reported raw.</td></tr>
+      <tr><td class="wrap"><strong>Memory</strong></td><td class="m">size, resident, share, text,<br>data, rsslim</td><td class="wrap">Memory footprint across a run. All kB.</td></tr>
+      <tr><td class="wrap"><strong>Faults &amp; swap</strong></td><td class="m">minflt, cminflt, majflt, cmajflt,<br>nswap, cnswap</td><td class="wrap">Page-fault behaviour &mdash; the leading indicator of a memory-pressured node.</td></tr>
+      <tr><td class="wrap"><strong>Scheduling</strong></td><td class="m">token</td><td class="wrap">Resource Manager token.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>A companion class, <code>PMGPublishedAgentData</code>, carries per-host rather than per-process data: total and free RAM, swap, CPU count, process count, filesystem usage, and one-, five- and fifteen-minute load averages, alongside the agent's own resource use. Its attributes are marked <code>(GLOBAL)</code> in the schema where they describe the host rather than the agent process &mdash; a distinction the agent must preserve, since reporting host load as agent load would misdirect an operator investigating a slow node.</p>
+
+  <div class="note warn">
+    <h4>Trap: cumulative counters</h4>
+    <p><code>utime</code>, <code>stime</code> and the fault counters are monotonically increasing totals since process start. "How did CPU behave over the last hour" requires differencing two samples; reporting the raw value answers a different question, and answers it in units an operator will misread as recent activity. This belongs in the semantic mapping layer as a derived quantity, so that all five agents difference it identically &mdash; it is exactly the kind of computation that would otherwise be re-implemented, differently, per agent.</p>
+  </div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section class="sec" id="s5">
+  <span class="secnum">05</span>
+  <h2>The three-vocabulary collision</h2>
+  <p class="lede">This finding was not anticipated in the draft, it has no fix at the agent layer, and it determines the shape of the framework. It deserves to be the centre of the architecture paper.</p>
+
+  <p>Run Control and Process Management do not share one notion of what a component is doing. They carry three separate state vocabularies, and those vocabularies overlap by name while differing in meaning:</p>
+
+  <ol>
+    <li><strong>RC FSM state</strong> &mdash; eleven values, published in <code>RCStateInfo.state</code>. Describes where a node sits in the <em>run lifecycle</em>.</li>
+    <li><strong>RC supervision status</strong> &mdash; seven values, published in <code>DAQApplicationInfo.status</code>. Describes Run Control's <em>belief about the process</em> behind an application.</li>
+    <li><strong>PMG process state</strong> &mdash; nine values, published in <code>PMGPublishedProcessData.state</code>. Describes what Process Management <em>observes of the operating-system process</em>.</li>
+  </ol>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 1000 400" role="img" aria-label="Three state vocabularies with six colliding token names linked across columns">
+        <defs>
+          <marker id="ahw" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <circle cx="5" cy="5" r="3" fill="var(--signal)"/>
+          </marker>
+        </defs>
+
+        <text x="160" y="30" text-anchor="middle" font-size="11" font-weight="600" fill="var(--fsm)" class="lbl">RC FSM STATE</text>
+        <text x="160" y="46" text-anchor="middle" font-size="9" fill="var(--muted)">RCStateInfo.state</text>
+        <text x="500" y="30" text-anchor="middle" font-size="11" font-weight="600" fill="var(--sup)" class="lbl">RC SUPERVISION STATUS</text>
+        <text x="500" y="46" text-anchor="middle" font-size="9" fill="var(--muted)">DAQApplicationInfo.status</text>
+        <text x="840" y="30" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)" class="lbl">PMG PROCESS STATE</text>
+        <text x="840" y="46" text-anchor="middle" font-size="9" fill="var(--muted)">PMGPublishedProcessData.state</text>
+
+        <!-- col 1 -->
+        <g font-size="10.5">
+          <rect x="70" y="60" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="80" y="75" fill="var(--signal)" font-weight="600">ABSENT</text>
+          <rect x="70" y="86" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="101" fill="var(--fsm)">NONE</text>
+          <rect x="70" y="112" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="127" fill="var(--fsm)">INITIAL</text>
+          <rect x="70" y="138" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="153" fill="var(--fsm)">CONFIGURED</text>
+          <rect x="70" y="164" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="179" fill="var(--fsm)">CONNECTED</text>
+          <rect x="70" y="190" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)" stroke-width="1.6"/><text x="80" y="205" fill="var(--signal)" font-weight="600">RUNNING</text>
+          <rect x="70" y="216" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="231" fill="var(--fsm)">ROIBSTOPPED</text>
+          <rect x="70" y="242" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="257" fill="var(--fsm)">DCSTOPPED</text>
+          <rect x="70" y="268" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="283" fill="var(--fsm)">HLTSTOPPED</text>
+          <rect x="70" y="294" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="309" fill="var(--fsm)">SFOSTOPPED</text>
+          <rect x="70" y="320" width="180" height="22" rx="3" fill="var(--fsm-soft)" stroke="var(--fsm)" opacity=".55"/><text x="80" y="335" fill="var(--fsm)">GTHSTOPPED</text>
+        </g>
+
+        <!-- col 2 -->
+        <g font-size="10.5">
+          <rect x="410" y="60" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="420" y="75" fill="var(--signal)" font-weight="600">NOTAV</text>
+          <rect x="410" y="86" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="420" y="101" fill="var(--signal)" font-weight="600">ABSENT</text>
+          <rect x="410" y="112" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="420" y="127" fill="var(--signal)" font-weight="600">REQUESTED</text>
+          <rect x="410" y="138" width="180" height="22" rx="3" fill="var(--sup-soft)" stroke="var(--sup)" opacity=".55"/><text x="420" y="153" fill="var(--sup)">UP</text>
+          <rect x="410" y="164" width="180" height="22" rx="3" fill="var(--sup-soft)" stroke="var(--sup)" opacity=".55"/><text x="420" y="179" fill="var(--sup)">TERMINATING</text>
+          <rect x="410" y="190" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="420" y="205" fill="var(--signal)" font-weight="600">EXITED</text>
+          <rect x="410" y="216" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="420" y="231" fill="var(--signal)" font-weight="600">FAILED</text>
+        </g>
+
+        <!-- col 3 -->
+        <g font-size="10.5">
+          <rect x="750" y="60" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="760" y="75" fill="var(--signal)" font-weight="600">NOTAV</text>
+          <rect x="750" y="86" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="760" y="101" fill="var(--signal)" font-weight="600">REQUESTED</text>
+          <rect x="750" y="112" width="180" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".55"/><text x="760" y="127" fill="var(--pmg)">LAUNCHING</text>
+          <rect x="750" y="138" width="180" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".55"/><text x="760" y="153" fill="var(--pmg)">CREATED</text>
+          <rect x="750" y="164" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)" stroke-width="1.6"/><text x="760" y="179" fill="var(--signal)" font-weight="600">RUNNING</text>
+          <rect x="750" y="190" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="760" y="205" fill="var(--signal)" font-weight="600">EXITED</text>
+          <rect x="750" y="216" width="180" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".55"/><text x="760" y="231" fill="var(--pmg)">SIGNALED</text>
+          <rect x="750" y="242" width="180" height="22" rx="3" fill="var(--pmg-soft)" stroke="var(--pmg)" opacity=".55"/><text x="760" y="257" fill="var(--pmg)">SYNCERROR</text>
+          <rect x="750" y="268" width="180" height="22" rx="3" fill="var(--signal-soft)" stroke="var(--signal)"/><text x="760" y="283" fill="var(--signal)" font-weight="600">FAILED</text>
+        </g>
+
+        <!-- collision links -->
+        <g stroke="var(--signal)" stroke-width="1.2" fill="none" opacity=".8">
+          <path d="M250,71 L404,97"/>
+          <path d="M590,71 L744,71"/>
+          <path d="M590,123 L744,97"/>
+          <path d="M590,201 L744,201"/>
+          <path d="M590,227 L744,279"/>
+        </g>
+        <!-- the dangerous one -->
+        <path d="M250,201 L300,201 L300,372 L700,372 L700,175 L744,175"
+              stroke="var(--signal)" stroke-width="2.2" fill="none" stroke-dasharray="6 3"/>
+        <text x="500" y="366" text-anchor="middle" font-size="10" font-weight="600" fill="var(--signal)">RUNNING &ne; RUNNING &mdash; taking data vs. process alive</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 4</b> Six token names appear in more than one vocabulary. Amber marks every colliding name; grey-blue, violet and green mark names unique to one vocabulary. The heavy dashed link is the dangerous one: it spans the two vocabularies furthest apart in meaning, and it is the collision an operator is most likely to hit, because "is it running?" is the most natural question to ask.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 10</b> Disambiguation table &mdash; the seed of the semantic mapping layer</caption>
+    <thead><tr><th>Token</th><th>In RC FSM</th><th>In RC supervision</th><th>In PMG</th><th class="wrap">Risk if conflated</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="m">RUNNING</td>
+        <td class="wrap">Taking data</td>
+        <td class="wrap">&mdash; (uses <code>UP</code>)</td>
+        <td class="wrap">Process alive</td>
+        <td class="wrap"><span class="pill p-mut">severe</span> A partition can be fully <code>RUNNING</code> in PMG terms with every process alive, and taking no data at all.</td>
+      </tr>
+      <tr>
+        <td class="m">ABSENT</td>
+        <td class="wrap">Default value &mdash; means "unknown"</td>
+        <td class="wrap">No longer running, cause undetermined</td>
+        <td class="wrap">&mdash;</td>
+        <td class="wrap"><span class="pill p-mut">severe</span> One means "we have no data"; the other means "it died and we don't know why". Opposite implications for the shifter.</td>
+      </tr>
+      <tr>
+        <td class="m">NOTAV</td>
+        <td class="wrap">&mdash;</td>
+        <td class="wrap">Initial, or PMG unreachable</td>
+        <td class="wrap">No information available</td>
+        <td class="wrap"><span class="pill p-warn">moderate</span> Similar intent, different causes. RC's <code>NOTAV</code> may specifically indicate PMG is unreachable &mdash; itself a reportable fault.</td>
+      </tr>
+      <tr>
+        <td class="m">REQUESTED</td>
+        <td class="wrap">&mdash;</td>
+        <td class="wrap">RC asked PMG to start it</td>
+        <td class="wrap">PMG received the request</td>
+        <td class="wrap"><span class="pill p-ok">low</span> Genuinely the two ends of one handshake. Divergence between them is itself diagnostic.</td>
+      </tr>
+      <tr>
+        <td class="m">EXITED</td>
+        <td class="wrap">&mdash;</td>
+        <td class="wrap">RC observed the exit</td>
+        <td class="wrap">Exited normally, with a code</td>
+        <td class="wrap"><span class="pill p-warn">moderate</span> RC's <code>EXITED</code> does not distinguish clean exit from crash; PMG splits it into <code>EXITED</code> and <code>SIGNALED</code>. Answering from RC loses the crash signal.</td>
+      </tr>
+      <tr>
+        <td class="m">FAILED</td>
+        <td class="wrap">&mdash;</td>
+        <td class="wrap">Failed to start</td>
+        <td class="wrap">Failed to start</td>
+        <td class="wrap"><span class="pill p-ok">low</span> Aligned in meaning. Note PMG publishes it as the string <code>"failure"</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note danger">
+    <h4>Why this cannot be fixed at the agent or prompt layer</h4>
+    <p>The obvious response is to tell the model about the ambiguity in a system prompt. That fails for three reasons, and the reasons are worth stating because they are the argument for the whole framework.</p>
+    <ul>
+      <li><strong>It is a retrieval problem before it is a generation problem.</strong> By the time text reaches the model, a tool has already returned a record saying <code>state: "RUNNING"</code>. The ambiguity is in the data, and no amount of prompting recovers a distinction the payload never carried.</li>
+      <li><strong>It multiplies across agents.</strong> Five agents means five prompts to keep synchronised against a schema none of them own. The first divergence produces two agents giving different answers to the same question &mdash; the exact property the draft rightly calls unacceptable in a shifter-facing tool.</li>
+      <li><strong>It is unfalsifiable at evaluation time.</strong> A prompt-level convention cannot be unit-tested. A typed mapping layer can, and its test suite becomes part of the benchmark evidence.</li>
+    </ul>
+    <p>The fix is structural: <strong>every state value must be typed by its vocabulary before it reaches the model.</strong> The mapping layer emits <code>rc.fsm:RUNNING</code> and <code>pmg.process:RUNNING</code> as distinct values that cannot compare equal. See &sect;8.4.</p>
+  </div>
+</section>
+
+<!-- ================= 6 ================= -->
+<section class="sec" id="s6">
+  <span class="secnum">06</span>
+  <h2>How Run Control and Process Management couple</h2>
+  <p class="lede">The draft argues that the coupling between these two services is the strongest justification for an orchestration layer. WP1 confirms this and locates the join precisely enough to build on.</p>
+
+  <p>The operational narrative in the draft is verified. On boot, the Root Controller reads OKS for applications and host assignments, delegates process creation to PMG, and receives handles. As each application initialises it registers with the IPC directory; the parent locates it, binds it into the tree, and advances it out of <code>INITIAL</code>. On failure, the launcher detects termination via <code>waitpid</code>, PMG raises an alert, and the parent marks the child bad and halts trigger distribution.</p>
+
+  <p>What WP1 adds is the field that makes this queryable. Run Control publishes <code>fullyInitialized</code> &mdash; documented in source as "the application has already done the PMG synch". This is the join key between the two services' state models, and it gives the agent a well-defined way to detect the most confusing operational condition in the pair:</p>
+
+  <div class="note">
+    <h4>The diagnostic that only the orchestrator can make</h4>
+    <p>Consider a node reporting FSM state <code>INITIAL</code> with <code>fullyInitialized = false</code>, while PMG reports its process as <code>RUNNING</code> with a healthy resident set. Neither agent alone can explain this. Together they can: <em>the process is alive and consuming memory, but Run Control has not completed its handshake with it</em> &mdash; a hung startup, not a crash, and the remedy is completely different from the one a crash would call for.</p>
+    <p>This is the concrete form of the draft's "why did TileCal stop?" example, and it is the routing case the orchestration layer must be designed around: not merging two answers, but detecting that two sources <em>disagree</em> and reporting the disagreement as the finding.</p>
+  </div>
+
+  <p>Two further couplings are worth recording for WP2:</p>
+
+  <ul>
+    <li><strong>RC's supervision status is derived from PMG</strong>, not observed independently. <code>DAQApplicationInfo.status</code>, <code>exitCode</code> and <code>exitSignal</code> are RC's cached copy of what PMG told it. When the two disagree, PMG is authoritative and RC is stale &mdash; a precedence rule the mapping layer must encode, because the agent will frequently have both.</li>
+    <li><strong>The Access Manager sits on both paths.</strong> RC's refusal vocabulary includes <code>NOT_ALLOWED</code>; PMG's signal exceptions include <code>NOT_ALLOWED_BY_AM</code>. The draft's concern here is confirmed by source: authorisation is enforced per-caller at both services, so a gateway authenticating as a single service account really does erase the per-user accountability the Access Manager exists to provide. This remains an open item for the operations group &mdash; but it now has a concrete form, since read-only queries at both services also pass through AM.</li>
+  </ul>
+</section>
+
+<!-- ================= 7 ================= -->
+<section class="sec" id="s7">
+  <span class="secnum">07</span>
+  <h2>Access tiers, revised</h2>
+  <p class="lede">The draft's three-tier model survives WP1 with one significant revision: Tier 1 is broader than assumed, and the RC/PMG data models are now fully known offline, which changes what has to be sequenced when.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="Three access tiers: static configuration, historical telemetry, and live state, with increasing cost and access constraints">
+        <g>
+          <rect x="20" y="40" width="300" height="200" rx="6" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="42" y="68" font-size="11" font-weight="600" fill="var(--pmg)" class="lbl">TIER 1 &mdash; STATIC CONFIGURATION</text>
+          <text x="42" y="90" font-size="15" font-weight="600" fill="var(--pmg)">OKS</text>
+          <line x1="42" y1="102" x2="298" y2="102" stroke="var(--pmg)" opacity=".3"/>
+          <text x="42" y="122" font-size="10" fill="var(--ink-2)">Controller tree &middot; segment membership</text>
+          <text x="42" y="140" font-size="10" fill="var(--ink-2)">Host assignment &middot; binary &amp; arguments</text>
+          <text x="42" y="158" font-size="10" fill="var(--ink-2)">Application parameters</text>
+          <text x="42" y="188" font-size="10" font-weight="600" fill="var(--pmg)">Needs: release + OKS files</text>
+          <text x="42" y="206" font-size="10" fill="var(--pmg)">No running partition</text>
+          <text x="42" y="228" font-size="10" font-weight="600" fill="var(--pmg)">AVAILABLE NOW</text>
+        </g>
+
+        <g>
+          <rect x="350" y="40" width="300" height="200" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+          <text x="372" y="68" font-size="11" font-weight="600" fill="var(--accent)" class="lbl">TIER 2 &mdash; HISTORICAL TELEMETRY</text>
+          <text x="372" y="90" font-size="15" font-weight="600" fill="var(--accent)">PBEAST</text>
+          <line x1="372" y1="102" x2="628" y2="102" stroke="var(--accent)" opacity=".3"/>
+          <text x="372" y="122" font-size="10" fill="var(--ink-2)">State at a past time &middot; state history</text>
+          <text x="372" y="140" font-size="10" fill="var(--ink-2)">Memory &amp; CPU across a run</text>
+          <text x="372" y="158" font-size="10" fill="var(--ink-2)">Crash history &middot; last entry to error</text>
+          <text x="372" y="188" font-size="10" font-weight="600" fill="var(--accent)">Needs: credentials</text>
+          <text x="372" y="206" font-size="10" fill="var(--accent)">HTTPS &middot; no CORBA &middot; outside Point 1</text>
+          <text x="372" y="228" font-size="10" font-weight="600" fill="var(--signal)">BLOCKED &mdash; highest priority</text>
+        </g>
+
+        <g>
+          <rect x="680" y="40" width="300" height="200" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="2"/>
+          <text x="702" y="68" font-size="11" font-weight="600" fill="var(--danger)" class="lbl">TIER 3 &mdash; LIVE STATE</text>
+          <text x="702" y="90" font-size="15" font-weight="600" fill="var(--danger)">IPC / CORBA</text>
+          <line x1="702" y1="102" x2="958" y2="102" stroke="var(--danger)" opacity=".3"/>
+          <text x="702" y="122" font-size="10" fill="var(--ink-2)">Current FSM state &middot; busy flag</text>
+          <text x="702" y="140" font-size="10" fill="var(--ink-2)">Live process status</text>
+          <text x="702" y="158" font-size="10" fill="var(--ink-2)">Present-tense questions only</text>
+          <text x="702" y="188" font-size="10" font-weight="600" fill="var(--danger)">Needs: in-partition gateway</text>
+          <text x="702" y="206" font-size="10" fill="var(--danger)">Bounded by Point 1 segregation</text>
+          <text x="702" y="228" font-size="10" font-weight="600" fill="var(--danger)">DEFER TO LAST</text>
+        </g>
+
+        <path d="M20,268 L980,268" stroke="var(--rule-strong)" stroke-width="1.5"/>
+        <path d="M960,262 L980,268 L960,274 Z" fill="var(--rule-strong)"/>
+        <text x="20" y="288" font-size="10" fill="var(--muted)">increasing cost, decreasing reach, tightening access constraints</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 5</b> The revised tier model. The sequencing argument in the draft holds and strengthens: most operator questions resolve at Tier 1 or Tier 2, and the two tiers that deliver the most capability are the two least constrained by the Point&nbsp;1 network boundary.</figcaption>
+  </figure>
+
+  <p>Two revisions to the draft's account:</p>
+
+  <ul>
+    <li><strong>Tier 1 now covers more than the draft assumed.</strong> Because the RC FSM, the PMG state machine, the handle grammar, both IS schemas and both IDL surfaces are all recoverable from the repositories, the entire <em>schema</em> of the system is Tier-1 knowledge. Only <em>instance</em> data needs Tiers 2 and 3. The semantic mapping layer can therefore be written and tested in full before any credential arrives.</li>
+    <li><strong>Tier 2 is now the sole critical-path blocker.</strong> With F1&ndash;F7 resolved, PBEAST credentials and endpoint reachability are the only remaining item that can stall WP2. The draft already ranks this first; WP1's outcome sharpens that to <em>the only</em> thing worth chasing before WP2 starts.</li>
+  </ul>
+
+  <div class="note">
+    <h4>A cheap Tier-2 pre-check, before credentials land</h4>
+    <p>Tier 2's value depends on an assumption no one has yet tested: that the RC and PMG IS classes of Tables 5, 6 and 9 are among the subset PBEAST actually archives. PBEAST stores <em>a subset</em> of operational monitoring data, and nothing guarantees the subset includes them. Verify class-by-class coverage in the first PBEAST session, before building anything on top &mdash; if <code>RCStateInfo</code> history turns out not to be archived, the RC agent's "when did this last change state" capability moves from Tier 2 to Tier 3, and the whole sequencing argument changes. This is the cheapest high-consequence check available in WP1.</p>
+  </div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section class="sec" id="s8">
+  <span class="secnum">08</span>
+  <h2>Methodology: the reusable MCP pattern</h2>
+  <p class="lede">WP1's findings are not neutral about architecture. Each one rules something out. This section derives the WP2 blueprint from them rather than proposing it independently &mdash; which is also what makes it defensible in a paper.</p>
+
+  <h3>8.1 Six constraints, derived</h3>
+  <p>Every element of the design below traces to a finding. Stating the derivation explicitly is what distinguishes an architecture contribution from a description of some code.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 11</b> From WP1 finding to architectural constraint</caption>
+    <thead><tr><th>From</th><th>Constraint</th><th class="wrap">Rules out</th></tr></thead>
+    <tbody>
+      <tr><td class="m">F8, &sect;5</td><td class="wrap"><strong>C1.</strong> State values are namespaced by vocabulary before reaching the model</td><td class="wrap">Passing raw IS records to the model; fixing ambiguity in prompts</td></tr>
+      <tr><td class="m">F4, &sect;3.3</td><td class="wrap"><strong>C2.</strong> Health is a composite, never a scalar state</td><td class="wrap">A <code>get_state</code> tool returning a string</td></tr>
+      <tr><td class="m">&sect;3.4</td><td class="wrap"><strong>C3.</strong> Every value carries its own time semantics &mdash; wall clock and monotonic tokens are different types</td><td class="wrap">A single generic <code>timestamp</code> field</td></tr>
+      <tr><td class="m">&sect;4.4</td><td class="wrap"><strong>C4.</strong> Four-value effect taxonomy, enforced at the framework, not per agent</td><td class="wrap">The draft's binary read/mutate flag</td></tr>
+      <tr><td class="m">&sect;3.1</td><td class="wrap"><strong>C5.</strong> Node role is part of identity &mdash; the legal-transition answer depends on it</td><td class="wrap">One FSM model applied uniformly to the tree</td></tr>
+      <tr><td class="m">&sect;7</td><td class="wrap"><strong>C6.</strong> Tier is a property of an answer, and is reported with it</td><td class="wrap">Hiding provenance behind a uniform query interface</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>8.2 The layered architecture</h3>
+  <p>The draft's five-layer stack is sound and survives WP1. What changes is the weight of the semantic mapping layer, which moves from convenience to the framework's principal component, and the addition of an explicit contract boundary above it.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 1000 470" role="img" aria-label="Layered MCP framework: orchestration, five service agents, response contract, semantic mapping, data access tiers, and a snapshot replay harness">
+        <!-- orchestration -->
+        <rect x="140" y="20" width="720" height="52" rx="5" fill="var(--surface-2)" stroke="var(--rule-strong)" stroke-width="1.5"/>
+        <text x="500" y="42" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" class="lbl">ORCHESTRATION LAYER</text>
+        <text x="500" y="60" text-anchor="middle" font-size="9.5" fill="var(--muted)">routing &middot; composition &middot; cross-service disagreement detection (&sect;6)</text>
+
+        <!-- agents -->
+        <g>
+          <rect x="20" y="100" width="176" height="46" rx="4" fill="var(--fsm-soft)" stroke="var(--fsm)" stroke-width="1.5"/>
+          <text x="108" y="121" text-anchor="middle" font-size="11" font-weight="600" fill="var(--fsm)">RC AGENT</text>
+          <text x="108" y="136" text-anchor="middle" font-size="8.5" fill="var(--fsm)">WP4</text>
+
+          <rect x="212" y="100" width="176" height="46" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)" stroke-width="2"/>
+          <text x="300" y="121" text-anchor="middle" font-size="11" font-weight="600" fill="var(--pmg)">PMG AGENT</text>
+          <text x="300" y="136" text-anchor="middle" font-size="8.5" fill="var(--pmg)">WP3 pilot</text>
+
+          <rect x="404" y="100" width="176" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="492" y="127" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">OKS AGENT</text>
+
+          <rect x="596" y="100" width="176" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="684" y="127" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">IS AGENT</text>
+
+          <rect x="788" y="100" width="176" height="46" rx="4" fill="var(--surface-2)" stroke="var(--rule)"/>
+          <text x="876" y="127" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">ERS AGENT</text>
+        </g>
+        <text x="20" y="166" font-size="9" fill="var(--muted)">thin: tool + resource definitions, prompt scaffolding, response contract binding</text>
+
+        <!-- contract -->
+        <rect x="20" y="185" width="944" height="46" rx="5" fill="var(--signal-soft)" stroke="var(--signal)" stroke-width="1.5"/>
+        <text x="500" y="205" text-anchor="middle" font-size="12" font-weight="600" fill="var(--signal)" class="lbl">RESPONSE CONTRACT &mdash; THE PROVENANCE ENVELOPE</text>
+        <text x="500" y="222" text-anchor="middle" font-size="9.5" fill="var(--signal)">every value carries: vocabulary &middot; tier &middot; observation time &middot; confidence &nbsp;(C1, C3, C6)</text>
+
+        <!-- semantic -->
+        <rect x="20" y="248" width="944" height="66" rx="5" fill="var(--sup-soft)" stroke="var(--sup)" stroke-width="2.5"/>
+        <text x="500" y="270" text-anchor="middle" font-size="12" font-weight="600" fill="var(--sup)" class="lbl">SEMANTIC MAPPING LAYER</text>
+        <text x="500" y="288" text-anchor="middle" font-size="9.5" fill="var(--sup)">vocabulary registry &middot; identifier resolution &middot; derived quantities &middot; source precedence</text>
+        <text x="500" y="304" text-anchor="middle" font-size="9" fill="var(--sup)" font-style="italic">the load-bearing component &mdash; the only place the three RUNNINGs are distinguishable</text>
+
+        <!-- data access -->
+        <rect x="20" y="331" width="944" height="76" rx="5" fill="var(--surface)" stroke="var(--rule-strong)" stroke-width="1.5"/>
+        <text x="500" y="351" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" class="lbl">DATA ACCESS LAYER &mdash; service-agnostic, written once</text>
+        <g>
+          <rect x="46" y="362" width="200" height="34" rx="4" fill="var(--pmg-soft)" stroke="var(--pmg)"/>
+          <text x="146" y="383" text-anchor="middle" font-size="10" font-weight="600" fill="var(--pmg)">OKS reader &middot; Tier 1</text>
+
+          <rect x="278" y="362" width="200" height="34" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/>
+          <text x="378" y="383" text-anchor="middle" font-size="10" font-weight="600" fill="var(--accent)">PBEAST client &middot; Tier 2</text>
+
+          <rect x="510" y="362" width="200" height="34" rx="4" fill="var(--danger-soft)" stroke="var(--danger)"/>
+          <text x="610" y="383" text-anchor="middle" font-size="10" font-weight="600" fill="var(--danger)">IPC gateway &middot; Tier 3</text>
+
+          <rect x="742" y="362" width="196" height="34" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+          <text x="840" y="383" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-2)">ERS reader</text>
+        </g>
+
+        <!-- harness -->
+        <rect x="20" y="424" width="944" height="40" rx="5" fill="var(--surface-2)" stroke="var(--rule-strong)" stroke-width="1.5" stroke-dasharray="6 3"/>
+        <text x="500" y="449" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-2)" class="lbl">SNAPSHOT &amp; REPLAY HARNESS &mdash; deterministic fixtures, built in WP2 not retrofitted</text>
+      </svg>
+    </div>
+    <figcaption><b>Figure 6</b> The framework. Agents are thin by design: everything that could diverge between two agents answering the same question &mdash; vocabulary, identifier resolution, derived metrics, source precedence &mdash; lives below the contract boundary and is written once. The dashed harness spans the whole stack because it must capture at every tier.</figcaption>
+  </figure>
+
+  <h3>8.3 The generic tool surface</h3>
+  <p>The draft's principle &mdash; a small generic query surface plus semantic wrappers, rather than one tool per operation per service &mdash; is correct, and WP1 supplies the concrete shape. Because RC state and PMG status are both IS objects differing only by class, one lookup surface serves both.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 12</b> Proposed tool surface. Eight tools serve both agents; only the wrappers differ</caption>
+    <thead><tr><th>Tool</th><th>Kind</th><th>Effect</th><th class="wrap">Serves</th></tr></thead>
+    <tbody>
+      <tr><td class="m">find_objects</td><td><span class="pill p-ok">generic</span></td><td><span class="pill p-read">read</span></td><td class="wrap">Objects by IS class and name pattern. Underlies every "which things are…" question in both services.</td></tr>
+      <tr><td class="m">get_object</td><td><span class="pill p-ok">generic</span></td><td><span class="pill p-read">read</span></td><td class="wrap">All attributes of one named object.</td></tr>
+      <tr><td class="m">get_history</td><td><span class="pill p-ok">generic</span></td><td><span class="pill p-read">read</span></td><td class="wrap">Attribute over a time range, via Tier 2. Answers every retrospective question in &sect;5.1&ndash;5.2 of the draft.</td></tr>
+      <tr><td class="m">describe_class</td><td><span class="pill p-ok">generic</span></td><td><span class="pill p-read">read</span></td><td class="wrap">Schema introspection. Lets the agent reach monitoring data not anticipated at design time.</td></tr>
+      <tr><td class="m">resolve_identifier</td><td><span class="pill p-ok">generic</span></td><td><span class="pill p-read">read</span></td><td class="wrap">Free text &rarr; typed identifier (PMG handle, controller name, segment). The gate on every other tool.</td></tr>
+      <tr><td class="m">rc_node_health</td><td><span class="pill p-sup">wrapper</span></td><td><span class="pill p-read">read</span></td><td class="wrap">The C2 composite: state + transitioning + busy + fault + errorReasons + badChildren, one call.</td></tr>
+      <tr><td class="m">rc_subtree</td><td><span class="pill p-sup">wrapper</span></td><td><span class="pill p-warn">read-heavy</span></td><td class="wrap">Tree beneath a node, own vs. aggregated state kept distinct. Fan-out bounded and declared.</td></tr>
+      <tr><td class="m">pmg_process_report</td><td><span class="pill p-sup">wrapper</span></td><td><span class="pill p-read">read</span></td><td class="wrap">Identity + state + exit cause + differenced resource metrics for one handle.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Following the draft's recommendation, OKS configuration is exposed as MCP <em>resources</em> rather than tools &mdash; it is static and addressable, which is what resources are for. WP1 strengthens this: the controller tree and segment membership are exactly the stable, structural content that benefits from being addressable rather than queried, and serving them as resources keeps them out of the tool budget entirely.</p>
+
+  <h3>8.4 The provenance envelope</h3>
+  <p>This is the mechanism that discharges C1, C3 and C6 together, and it is the piece most worth getting right in WP2 because every later agent inherits it. No value reaches the model bare; each is wrapped with the facts needed to interpret it.</p>
+
+  <pre><code><span class="c">// PMG agent answering: "is TileCal-RCD running?"</span>
+{
+  <span class="k">"identifier"</span>: {
+    <span class="k">"kind"</span>:   <span class="s">"pmg.handle"</span>,
+    <span class="k">"value"</span>:  <span class="s">"pmg://pc-tdq-onl-42.cern.ch/ATLAS/TileCal-RCD/17"</span>,
+    <span class="k">"resolved_from"</span>: <span class="s">"TileCal-RCD"</span>          <span class="c">// what the operator said</span>
+  },
+  <span class="k">"values"</span>: [
+    {
+      <span class="k">"field"</span>:      <span class="s">"process_state"</span>,
+      <span class="k">"vocabulary"</span>: <span class="s">"pmg.process"</span>,             <span class="c">// C1 — cannot compare to rc.fsm</span>
+      <span class="k">"value"</span>:      <span class="s">"RUNNING"</span>,
+      <span class="k">"display"</span>:    <span class="s">"running"</span>,               <span class="c">// the published string (§4.2)</span>
+      <span class="k">"means"</span>:     <span class="s">"the OS process is alive"</span>,  <span class="c">// never "taking data"</span>
+      <span class="k">"tier"</span>:       2,                          <span class="c">// C6</span>
+      <span class="k">"observed_at"</span>: <span class="s">"2026-08-21T03:14:22.881Z"</span>, <span class="c">// C3 — wall clock, real time</span>
+      <span class="k">"age_s"</span>:      41.2
+    },
+    {
+      <span class="k">"field"</span>:      <span class="s">"cpu_utime_delta_ms"</span>,
+      <span class="k">"value"</span>:      18422,
+      <span class="k">"derived"</span>:    <span class="s">"difference of cumulative counter over window"</span>,
+      <span class="k">"window_s"</span>:   300,                        <span class="c">// §4.5 — never report raw</span>
+      <span class="k">"tier"</span>:       2
+    }
+  ],
+  <span class="k">"not_answered"</span>: [
+    { <span class="k">"question"</span>: <span class="s">"is it taking data?"</span>,
+      <span class="k">"why"</span>: <span class="s">"requires rc.fsm vocabulary — route to the RC agent"</span> }
+  ]
+}</code></pre>
+
+  <p>Three properties of this envelope are doing real work, and each maps to a benchmark dimension in the draft's &sect;7:</p>
+
+  <div class="defs">
+    <div><dt>vocabulary + means</dt><dd>Makes the F8 collision structurally unrepresentable. The model cannot state "TileCal is running" without the qualifier, because the payload never contained an unqualified <code>RUNNING</code>. Feeds <strong>correctness</strong>.</dd></div>
+    <div><dt>tier + observed_at + age_s</dt><dd>Every answer is self-dating, so "as of when?" is always answerable and staleness is visible rather than inferred. Feeds <strong>correctness</strong> and <strong>calibrated refusal</strong>.</dd></div>
+    <div><dt>not_answered</dt><dd>An explicit slot for what the agent knows it cannot address, with the reason. This turns calibrated refusal from a prompt-level hope into a schema-level obligation &mdash; and gives the orchestrator a machine-readable routing signal. Feeds <strong>calibrated refusal</strong> directly.</dd></div>
+  </div>
+
+  <div class="note">
+    <h4>The measurement argument</h4>
+    <p>The draft rightly makes calibrated refusal a first-class benchmark dimension. A schema with a mandatory <code>not_answered</code> slot is what makes that dimension measurable: refusal becomes a structured output to score, not a judgement about free text. This is the strongest available answer to the reviewer question "how did you evaluate refusal?" &mdash; and it is only available if the envelope is designed in WP2, before any agent exists.</p>
+  </div>
+
+  <h3>8.5 The vocabulary registry</h3>
+  <p>The semantic mapping layer's core is a small, testable, declarative registry &mdash; not code scattered through the agents. WP1 has produced its first three entries in full: Tables 2, 7, and the supervision vocabulary of &sect;5. Each entry declares, per vocabulary, the token set, the published string for each token, the numeric code where one exists, a one-line meaning, and any collisions with other vocabularies.</p>
+
+  <p>That registry is what makes the framework's central claim falsifiable. It supports a specific, cheap test that should run in CI from WP2 onward:</p>
+
+  <div class="note">
+    <h4>The collision test</h4>
+    <p>For every pair of vocabularies, assert that no bare token from one can compare equal to a token from the other, and that every colliding name has a distinct <code>means</code> string. Seed it with the six collisions of Table 10. Any future service whose vocabulary introduces a seventh collision fails the build rather than shipping an ambiguity &mdash; which is exactly the generalisation guarantee WP4 needs to claim.</p>
+  </div>
+
+  <h3>8.6 How generalisation gets measured</h3>
+  <p>The draft proposes recording framework modifications required by each agent, as evidence for the architecture paper. WP1 lets that be sharpened from a narrative into a metric with a pre-registered prediction &mdash; which is a considerably stronger claim to make to reviewers.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 13</b> Generalisation ledger &mdash; recorded per agent from WP3 onward</caption>
+    <thead><tr><th>Measure</th><th class="wrap">What it captures</th><th class="wrap">Prediction if the pattern generalises</th></tr></thead>
+    <tbody>
+      <tr><td class="m">new generic tools</td><td class="wrap">Additions to the Table 12 core surface</td><td class="wrap">Zero after the pilot</td></tr>
+      <tr><td class="m">new wrappers</td><td class="wrap">Service-specific convenience tools</td><td class="wrap">Small and bounded &mdash; 2&ndash;4 per agent</td></tr>
+      <tr><td class="m">registry entries</td><td class="wrap">New vocabularies, identifier kinds, derived quantities</td><td class="wrap">Grows linearly &mdash; this is the expected cost of a new service</td></tr>
+      <tr><td class="m">envelope changes</td><td class="wrap">Modifications to the response contract</td><td class="wrap"><strong>Zero.</strong> Any change here falsifies the pattern</td></tr>
+      <tr><td class="m">data-access changes</td><td class="wrap">Modifications to OKS reader, PBEAST client, gateway</td><td class="wrap">Zero for Tiers 1&ndash;2</td></tr>
+      <tr><td class="m">agent LOC</td><td class="wrap">Code in the agent layer itself</td><td class="wrap">Roughly constant &mdash; agents stay thin</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Stating the predictions before WP3 turns WP4 into a test rather than a demonstration. It also gives the architecture paper a clean result shape either way: if the RC agent drops onto a PMG-shaped framework with zero envelope changes, the pattern is validated; if it does not, the ledger says precisely where the abstraction failed, which is a publishable finding in its own right.</p>
+
+  <div class="note warn">
+    <h4>One caution about the WP3 pilot choice</h4>
+    <p>The draft's case for PMG as pilot &mdash; command-shaped, live CORBA interface, publishes to IS, behind the Access Manager, clean identifiers, far smaller state space than RC &mdash; is well argued and WP1 supports every premise. Table 8 adds a further point in its favour: PMG's read/mutate split is cleaner, so the read-only boundary can be enforced structurally in the pilot.</p>
+    <p>The residual risk is the mirror image of the draft's own argument against RC: a framework shaped around PMG's <em>flat</em> object space may fit RC's <em>hierarchical</em> one badly, and hierarchy is the harder problem. Mitigate cheaply &mdash; design <code>find_objects</code> and the envelope against both Table 9 and Table 6 during WP2, even though only PMG is built in WP3. The RC schema is already fully known, so this costs design attention rather than implementation time, and it is the one place where WP1's completeness can be spent to de-risk WP4.</p>
+  </div>
+
+  <h3>8.7 What the harness must capture</h3>
+  <p>The draft's argument that replay is a week-one decision is correct and WP1 adds specificity about what a fixture must contain. Output consistency cannot be measured against a live system, because infrastructure drift becomes inseparable from agent nondeterminism &mdash; and &sect;3.5 shows RC's own publisher discards out-of-order updates, meaning the observable IS record depends on arrival ordering the agent cannot control.</p>
+
+  <p>A fixture must therefore capture, per snapshot: the OKS configuration in force; every relevant IS object with all attributes; the monotonic time tag <em>and</em> wall time of each record; the tier each value came from; and the vocabulary registry version in force at capture. That last item matters more than it looks &mdash; a fixture captured under one registry and replayed under another silently tests the wrong thing, and the failure would look like agent nondeterminism.</p>
+
+  <div class="note">
+    <h4>The positioning benefit, restated</h4>
+    <p>The draft notes that testing against live Point&nbsp;1 is prohibited, so "benchmarking on live scientific infrastructure" may not be a supportable claim. WP1 reinforces the alternative framing: reproducible benchmarking against captured production state is both defensible and methodologically stronger, and the fixture contents above are what make the reproducibility claim concrete rather than rhetorical.</p>
+  </div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section class="sec" id="s9">
+  <span class="secnum">09</span>
+  <h2>What WP1 leaves open</h2>
+  <p class="lede">The risk register, updated. Four of the draft's items are closed; the remainder are re-ranked, and two are new.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 14</b> Updated risk register</caption>
+    <thead><tr><th>Item</th><th>Status</th><th class="wrap">Position after WP1</th></tr></thead>
+    <tbody>
+      <tr><td class="wrap">RC FSM state model unconfirmed</td><td><span class="pill p-ok">closed</span></td><td class="wrap">Fully verified. Eleven states, twenty-three commands, complete transition table. See Figure 1 and Tables 2&ndash;3.</td></tr>
+      <tr><td class="wrap">IS class names undocumented</td><td><span class="pill p-ok">closed</span></td><td class="wrap">PMG classes ship as an in-repo OKS schema; RC classes recovered from the publisher. No live partition was needed.</td></tr>
+      <tr><td class="wrap">PMG handle syntax and IDL surface</td><td><span class="pill p-ok">closed</span></td><td class="wrap">Grammar corrected to include the optional port; full IDL surface classified in Table 8.</td></tr>
+      <tr><td class="wrap">Repository access &amp; SSO gating</td><td><span class="pill p-ok">closed</span></td><td class="wrap">Repositories clone anonymously. No credentials needed for the data-model work.</td></tr>
+      <tr><td class="wrap">PBEAST credentials and reachability</td><td><span class="pill p-mut">critical</span></td><td class="wrap"><strong>Now the sole critical-path blocker.</strong> Everything else in WP2 can proceed without it; nothing in Tier 2 can start with it outstanding.</td></tr>
+      <tr><td class="wrap">PBEAST class coverage</td><td><span class="pill p-mut">new</span></td><td class="wrap"><strong>New.</strong> PBEAST archives a subset. Whether <code>RCStateInfo</code> and <code>PMGPublishedProcessData</code> are in it is untested and decides whether Tier 2 delivers the RC/PMG history capability at all. First thing to check when credentials land.</td></tr>
+      <tr><td class="wrap">State-vocabulary collisions</td><td><span class="pill p-mut">new</span></td><td class="wrap"><strong>New, F8.</strong> Mitigated by design in &sect;8.4&ndash;8.5, not eliminated. Every additional service risks introducing new collisions; the CI test in &sect;8.5 is the control.</td></tr>
+      <tr><td class="wrap">Access Manager integration</td><td><span class="pill p-warn">open</span></td><td class="wrap">Confirmed to sit on both services' paths, including reads. Still an operations-group decision, still early. Determines whether deployment is approvable.</td></tr>
+      <tr><td class="wrap">Point 1 network segregation</td><td><span class="pill p-warn">open</span></td><td class="wrap">Unchanged. Constrains Tier 3 only. WP1 reduces its urgency by confirming how much is reachable at Tiers 1&ndash;2.</td></tr>
+      <tr><td class="wrap">PBEAST ownership vs. DCS track</td><td><span class="pill p-warn">open</span></td><td class="wrap">Unchanged, and now more urgent given Tier 2's elevated position. Agree before either team builds a client.</td></tr>
+      <tr><td class="wrap">Existing automated recovery</td><td><span class="pill p-warn">open</span></td><td class="wrap">Unchanged. Note that RC's publisher already feeds an expert system alongside IS &mdash; there is an established automated consumer of exactly this data, and the agents should compose with it rather than duplicate it.</td></tr>
+      <tr><td class="wrap">Terminology: session vs. partition</td><td><span class="pill p-warn">open</span></td><td class="wrap">Both services use <em>partition</em> throughout their current source, including in the handle grammar and the IS schema. Recommend standardising on <em>partition</em> for this track and recording the equivalence once in the registry.</td></tr>
+      <tr><td class="wrap">Public documentation age</td><td><span class="pill p-mut">confirmed</span></td><td class="wrap"><strong>Upgraded from risk to established fact.</strong> The literature's FSM is a decade obsolete. Table 1's evidence ordering is the standing control.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>9.1 Recommended immediate actions</h3>
+  <ol>
+    <li><strong>Chase PBEAST credentials, and nothing else that is externally blocked.</strong> It is now the only item that can stall WP2, and the class-coverage check should be the first query run once access exists.</li>
+    <li><strong>Settle PBEAST ownership with the DCS track this week.</strong> Tier 2's promotion to sole blocker makes a duplicated or divergent client materially more costly than it was when the draft was written.</li>
+    <li><strong>Start the vocabulary registry now.</strong> Three vocabularies are fully specified in this report. Encoding them, with the collision test, is unblocked and is the highest-value WP2 work available today.</li>
+    <li><strong>Fix the target release before writing the registry.</strong> Every string in Tables 2, 7 and 9 is release-specific. The registry should record the release it was derived from, so drift is detectable later.</li>
+    <li><strong>Design the envelope against both schemas.</strong> Per &sect;8.6 &mdash; cheap now, expensive after WP3.</li>
+  </ol>
+</section>
+
+<!-- ================= 10 ================= -->
+<section class="sec" id="s10">
+  <span class="secnum">10</span>
+  <h2>Evidence index</h2>
+  <p class="lede">Where each claim came from. Paths are relative to the repository root, so any claim can be re-checked against a fresh clone without re-deriving the study.</p>
+
+  <div class="tablewrap">
+  <table>
+    <caption><b>Table 15</b> Claim-to-source index</caption>
+    <thead><tr><th>Claim</th><th>Repository</th><th>Path</th></tr></thead>
+    <tbody>
+      <tr><td class="wrap">FSM states, enumeration order</td><td class="m">RunControl</td><td class="m">RunControl/FSM/FSMStates.h</td></tr>
+      <tr><td class="wrap">FSM state published strings</td><td class="m">RunControl</td><td class="m">src/FSM/FSMStates.cxx</td></tr>
+      <tr><td class="wrap">FSM commands, multi-step semantics</td><td class="m">RunControl</td><td class="m">RunControl/FSM/FSMCommands.h</td></tr>
+      <tr><td class="wrap">Command strings, EOR/SOR aliases</td><td class="m">RunControl</td><td class="m">src/FSM/FSMCommands.cxx</td></tr>
+      <tr><td class="wrap">Transition table: CONFIGURED &rarr; RUNNING, drain chain</td><td class="m">RunControl</td><td class="m">RunControl/FSM/Details/FSMActive.h</td></tr>
+      <tr><td class="wrap">Transition table: NONE/INITIAL, root-only commands, RELOAD_DB deferral</td><td class="m">RunControl</td><td class="m">RunControl/FSM/Details/FSMInitial.h</td></tr>
+      <tr><td class="wrap">Path-finding over states; the stale BOOTED comment</td><td class="m">RunControl</td><td class="m">RunControl/FSM/Details/FSMGraph.h</td></tr>
+      <tr><td class="wrap">Status record fields; the two time semantics</td><td class="m">RunControl</td><td class="m">RunControl/Common/RunControlCommands.h</td></tr>
+      <tr><td class="wrap">IS server names: RunCtrl, Supervision, Setup, RunParams</td><td class="m">RunControl</td><td class="m">RunControl/Common/Constants.h</td></tr>
+      <tr><td class="wrap">RCStateInfo and DAQApplicationInfo attributes; naming; out-of-order drop</td><td class="m">RunControl</td><td class="m">src/Controller/InformationPublisher.cxx</td></tr>
+      <tr><td class="wrap">TriggerState and LastStartTime objects</td><td class="m">RunControl</td><td class="m">src/Controller/Root/RootController.cxx</td></tr>
+      <tr><td class="wrap">Supervision status vocabulary</td><td class="m">RunControl</td><td class="m">RunControl/Controller/ApplicationSupervisorInfo.h</td></tr>
+      <tr><td class="wrap">rc::commander interface; FailureReason; ErrorItem</td><td class="m">RunControl</td><td class="m">idl/rc.idl</td></tr>
+      <tr><td class="wrap">PMG process states, codes, published strings; AGENT_ prefix</td><td class="m">ProcessManager</td><td class="m">ProcessManager/defs.h</td></tr>
+      <tr><td class="wrap">Handle grammar, optional port, validation rules</td><td class="m">ProcessManager</td><td class="m">src/lib/Handle.cxx</td></tr>
+      <tr><td class="wrap">Handle field semantics; the disambiguating id</td><td class="m">ProcessManager</td><td class="m">ProcessManager/Handle.h</td></tr>
+      <tr><td class="wrap">Server interface; read/mutate classification</td><td class="m">ProcessManager</td><td class="m">idl/pmgpriv/pmgpriv.idl</td></tr>
+      <tr><td class="wrap">ProcessStatusInfo, AgentInfo structures</td><td class="m">ProcessManager</td><td class="m">idl/pmgpub/pmgpub.idl</td></tr>
+      <tr><td class="wrap">PMGPublishedProcessData, PMGPublishedAgentData schemas</td><td class="m">ProcessManager</td><td class="m">data/pmg_is_info.xml</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<footer class="end">
+  <p><strong>Scope note.</strong> This report covers WP1 for Run Control and Process Management only. Claims about OKS, the Information Service and the Error Reporting System are limited to what the RC and PMG sources reveal about them, and those three services need their own WP1 pass before their agents are specified.</p>
+  <p style="margin-top:1em">All state names, command names, attribute names, identifier grammars and interface methods are quoted from Apache-2.0 licensed source. Every claim is re-checkable from the two clone commands in &sect;2.2.</p>
+</footer>
+
+</div>
+</main>
+</div>
