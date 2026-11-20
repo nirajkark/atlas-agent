@@ -48,6 +48,7 @@ Rules:
   "Webis unreachable").
 - If a partition is RUNNING but fault=true, say both clearly and list
   bad_children and error_reasons.
+- If a tool result has a `conclusion`, lead your answer with it.
 - If a tool returns running=false with a running_basis (partition not up in
   IS), answer that the partition is not running and give that basis. Only in
   that case; if running is absent, the state is unknown.

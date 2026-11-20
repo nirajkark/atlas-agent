@@ -651,8 +651,8 @@ flowchart TD
 | 7 | Webis running; `curl …/info/current?format=json` | ✅ | §3.4, §5 |
 | 8 | DAQ-1 MCP server over a subset of the Run Status page | ✅ all 23 page values (busy table excluded) · 8 tools + 4 discovery tools | §6.6 |
 | 9 | Example: "current status of the partition?" | ✅ own partition: "RUNNING" / after STOP "CONNECTED but not running"; `ATLAS`: "not running – not present in IS" (production on 20 Nov 2026 listed only `initial`, checked in the browser) | §6.5 |
-| 10 | Answers must reflect IS data | ✅ provenance on every value; guards; 38 tests; live evals | §6.7, §11 |
-| 11 | FastMCP; test with any client | ✅ 38 tests via MCP client, `fastmcp call`, Inspector | §12 |
+| 10 | Answers must reflect IS data | ✅ provenance on every value; guards; 39 tests; live evals | §6.7, §11 |
+| 11 | FastMCP; test with any client | ✅ 39 tests via MCP client, `fastmcp call`, Inspector | §12 |
 | 12 | LangChain/LangGraph agent on the CERN AI Gateway | ✅ `agent.py` | §8 |
 | 13 | DAQ-2 (P-BEAST) | ⏳ not started | §7 |
 
@@ -718,7 +718,7 @@ ssh -N -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
 curl -s "http://127.0.0.1:8080/info/current?format=json"            # tunnel check
 
 cd daq1
-uv run pytest                                                      # 38 offline tests
+uv run pytest                                                      # 39 offline tests
 uv run fastmcp list server.py                                      # tools
 uv run fastmcp call server.py get_run_state partition=mytest       # one tool
 uv run fastmcp dev inspector server.py                             # browser UI

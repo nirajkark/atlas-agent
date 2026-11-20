@@ -132,6 +132,8 @@ def get_run_state(partition: str) -> dict:
             # not a guess. Same outcome as ATLAS.js printHeader(): no state -> 'NONE' ->
             # "ATLAS is not running (RC state=NONE)". Only for this reason: if Webis is
             # unreachable or the object is missing, the state is genuinely unknown.
+            r = {"conclusion": f"The {partition} partition is not running: it is not present in IS.",
+                 **r}
             r["running"] = False
             r["running_basis"] = ("the partition is not up in IS (no such partition), so it "
                                   "is not running; on the Run Status page this shows as "
@@ -239,7 +241,8 @@ def get_partition_overview(partition: str) -> dict:
     state = get_run_state(partition)
     if state.get("reason") == "invalid_partition":
         # Nothing else to look up; put the conclusion first so it is not missed.
-        return {"partition": partition, "available": False,
+        return {"conclusion": state.get("conclusion"),
+                "partition": partition, "available": False,
                 "running": state.get("running"), "running_basis": state.get("running_basis"),
                 "reason": state["reason"], "detail": state["detail"],
                 "existing_partitions": state.get("existing_partitions")}
@@ -386,7 +389,9 @@ def list_partitions(name_contains: str = "") -> dict:
     try:
         names = webis.list_partitions()
         return {"available": True,
-                "partitions": [n for n in names if name_contains.lower() in n.lower()]}
+                "partitions": [n for n in names if name_contains.lower() in n.lower()],
+                "note": "A partition that is not in this list is not up in IS, so it is not "
+                        "running (the Run Status page shows 'not running (RC state=NONE)')."}
     except webis.WebisError as e:
         return {"available": False, "reason": e.code, "detail": e.description, "source": e.url}
 

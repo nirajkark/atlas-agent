@@ -115,10 +115,11 @@ Demo transcript: [`evals/20261120-own-partition-demo.md`](evals/20261120-own-par
 ## Use
 
 ```bash
-uv run pytest                                   # 38 offline tests (no network)
+uv run pytest                                   # 39 offline tests (no network)
 uv run python agent.py                          # chat; -v shows tool calls; -m <model>
 uv run python agent.py -v -q "Is mytest running?"
 uv run python eval_agent.py                     # live evaluation -> evals/<time>-<model>.md
+uv run python eval_conversation.py -w URL       # one 10-question conversation, PDF question at #6
 uv run fastmcp list server.py                   # list the tools and their descriptions
 uv run fastmcp call server.py get_run_state partition=mytest   # call one tool directly
 uv run fastmcp dev inspector server.py          # MCP Inspector in the browser
@@ -189,6 +190,11 @@ uv run fastmcp dev inspector server.py          # MCP Inspector in the browser
      the prompt now say so and point to P-BEAST.
   7. *Interpreting states* — "INITIAL" was explained as "ready for a new run" (wrong: it
      still needs CONFIGURE and CONNECT). Prompt now forbids unrequested interpretation.
+  9. *Context dilution in a long conversation* — asked as question 6 of 10 in one conversation,
+     the PDF question got "not available" although the tool returned `running: false` (single
+     questions were fine), and in another run the model only used `list_partitions`. Fixed in
+     the tools: a leading `conclusion` sentence, and a `note` on `list_partitions` that an absent
+     partition is not running. Afterwards 3/3 conversation runs answered "not running".
   8. *Environment not passed to the MCP server* — MCP's stdio launcher does not forward the
      parent's environment, so `WEBIS_URL` was ignored (a request meant for :8081 went to :8080).
      Fixed: `agent.server_transport()` passes it explicitly; `agent.py -w URL`.

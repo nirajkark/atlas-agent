@@ -318,6 +318,7 @@ def test_partition_not_up_means_not_running(monkeypatch):
     r = call("get_run_state", partition="ATLAS")
     assert r["available"] is False and r["reason"] == "invalid_partition"
     assert r["running"] is False and "not up in IS" in r["running_basis"]
+    assert r["conclusion"] == "The ATLAS partition is not running: it is not present in IS."
     assert "state" not in r                          # no invented state value
 
 
@@ -338,3 +339,11 @@ def test_overview_partition_not_up(monkeypatch):
     assert r["running"] is False and "not up in IS" in r["running_basis"]
     assert "run_info" not in r and "timing" not in r
     assert r["existing_partitions"] == ["initial"]
+    assert list(r)[0] == "conclusion"                # first thing the model reads
+
+
+
+def test_list_partitions_explains_absence(monkeypatch):
+    monkeypatch.setattr(webis, "list_partitions", lambda: ["initial", "nkarki_daq1"])
+    r = call("list_partitions")
+    assert "not in this list is not up in IS, so it is not running" in r["note"]
