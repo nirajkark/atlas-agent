@@ -32,3 +32,6 @@ __pycache__/
 .venv/
 .env
 .pytest_cache/
+
+# CERN-internal reference material (shared via Mattermost) - keep local, never publish
+ref/

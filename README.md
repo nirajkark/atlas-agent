@@ -5,7 +5,7 @@ Research and code for letting an AI assistant query ATLAS TDAQ operational data 
 | Path | Contents |
 |---|---|
 | `daq1/` | DAQ-1: read-only MCP server + agent for current IS data via Webis — see [daq1/README.md](daq1/README.md) |
-| `ref/` | Reference material: Run Status page (`ATLAS.html`, `ATLAS.js`), project instructions |
+| `ref/` | *Not in the public repo.* Local copy of CERN-internal reference material (Run Status page `ATLAS.html`/`ATLAS.js`, project instructions), shared via the project's Mattermost channel |
 | `docs/wp1/` | WP1 studies: Information Service, Run Control, ERS |
 | `docs/wp2/` | WP2: agentic-architecture literature review and DAQ agent architecture |
 | `docs/latex/` | LaTeX sources |
