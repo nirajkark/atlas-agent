@@ -236,12 +236,18 @@ flowchart TD
     E --> F
 ```
 
+**VMs (provided by the supervisor):** one per project, kept separate —
+`vm-onlsw-ai-is.cern.ch` for **DAQ-1** and `vm-onlsw-ai-pbeast.cern.ch` for **DAQ-2**.
+Both mount AFS, EOS and CVMFS (TDAQ release), and accept login with the CERN user name.
+On the IS VM the same two fixes were needed as described in §5: `glibc-devel`/`kernel-headers`
+for Webis, and a firewall rule letting the testbed's IS servers connect back.
+
 What each step looked like in practice:
 
 | Step | Command / fact |
 |---|---|
-| Login path (no VPN) | Mac → `ssh lxplus.cern.ch` (password + 2FA) → `ssh vm-onlsw-ai-pbeast.cern.ch` (Kerberos) |
-| Login path (eduVPN) | Mac → `ssh vm-onlsw-ai-pbeast.cern.ch` directly |
+| Login path (no VPN) | Mac → `ssh lxplus.cern.ch` (password + 2FA) → `ssh vm-onlsw-ai-is.cern.ch` (Kerberos) |
+| Login path (eduVPN) | Mac → `ssh vm-onlsw-ai-is.cern.ch` directly |
 | Load TDAQ | `source /cvmfs/atlas.cern.ch/repo/sw/tdaq/tools/cmake_tdaq/bin/cm_setup.sh tdaq-14-00-00` |
 | List partitions | `ipc_ls -P` |
 | List IS servers / objects | `is_ls -p mytest` · `is_ls -p mytest -n RunCtrl` |
@@ -267,7 +273,7 @@ flowchart LR
         AG["agent.py"] --> MS["server.py (MCP)"]
         MS --> L["localhost:8080"]
     end
-    subgraph VM["🖥️ VM vm-onlsw-ai-pbeast"]
+    subgraph VM["🖥️ VM vm-onlsw-ai-is"]
         WS["webis_server<br/>127.0.0.1:8080"]
     end
     subgraph TB["🏭 TDAQ testbed (<testbed-private-range>)"]
@@ -313,7 +319,7 @@ the Mac, an **SSH tunnel** maps Mac port 8080 → VM port 8080:
 
 ```bash
 ssh -N -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
-    -L 8080:127.0.0.1:8080 nkarki@vm-onlsw-ai-pbeast.cern.ch
+    -L 8080:127.0.0.1:8080 nkarki@vm-onlsw-ai-is.cern.ch
 ```
 
 Run it **on the Mac**. (Running it on the VM fails with `Address already in use`, because
@@ -623,7 +629,7 @@ flowchart TD
 | # | PDF requirement | Status | Where |
 |---|---|---|---|
 | 1 | CERN account; eduVPN optional | ✅ | — |
-| 2 | VM on CERN OpenStack | ⚠️ using `vm-onlsw-ai-pbeast` — confirm it is the intended VM | §4 |
+| 2 | VM on CERN OpenStack | ✅ provided by the supervisor: `vm-onlsw-ai-is` (DAQ-1); `vm-onlsw-ai-pbeast` is for DAQ-2 | §4 |
 | 3 | Load tdaq-14-00-00 | ✅ | §4 |
 | 4 | **Run a standalone partition on your VM** | ❌ **open** (read the testbed's `mytest` instead) | §4 |
 | 5 | Identify relevant services | ✅ RunCtrl, RunParams, DF, DQM, LHC | §6.2 |
@@ -692,8 +698,9 @@ is_ls -p mytest -n RunCtrl                  # objects in one IS server
 pgrep -af webis_server || nohup webis_server -p 8080 -a 127.0.0.1 > ~/webis.log 2>&1 &
 
 # --- on the Mac (eduVPN on) ---------------------------------------------
+kinit nkarki@CERN.CH                        # Kerberos ticket (~1 day): password-free ssh/tunnel
 ssh -N -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
-    -L 8080:127.0.0.1:8080 nkarki@vm-onlsw-ai-pbeast.cern.ch      # keep open
+    -L 8080:127.0.0.1:8080 nkarki@vm-onlsw-ai-is.cern.ch      # keep open
 curl -s "http://127.0.0.1:8080/info/current?format=json"            # tunnel check
 
 cd daq1

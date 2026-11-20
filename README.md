@@ -15,7 +15,7 @@ Research and code for letting an AI assistant query ATLAS TDAQ operational data 
 Webis runs on the dev VM (`webis_server -p 8080 -a 127.0.0.1`, read-only). From a laptop on eduVPN:
 
 ```bash
-ssh -N -L 8080:127.0.0.1:8080 <user>@vm-onlsw-ai-pbeast.cern.ch   # tunnel
+ssh -N -L 8080:127.0.0.1:8080 <user>@vm-onlsw-ai-is.cern.ch   # tunnel
 cd daq1 && uv run pytest                                           # offline tests
 uv run python agent.py                                             # chat (needs AIGW_API_KEY in daq1/.env)
 uv run python agent.py -v -q "Is mytest running?"                  # one question, show tool calls

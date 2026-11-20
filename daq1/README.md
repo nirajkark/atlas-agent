@@ -78,7 +78,7 @@ Check: `is_ls -p <partition> -n RunCtrl` lists objects (if it prints
 
 ```bash
 ssh -N -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
-    -L 8080:127.0.0.1:8080 <user>@vm-onlsw-ai-pbeast.cern.ch      # keep open
+    -L 8080:127.0.0.1:8080 <user>@vm-onlsw-ai-is.cern.ch      # keep open
 cd daq1
 uv sync
 echo "AIGW_API_KEY=..." > .env && chmod 600 .env                 # git-ignored
