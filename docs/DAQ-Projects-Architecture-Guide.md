@@ -254,6 +254,20 @@ What each step looked like in practice:
 | Start Webis | `webis_server -p 8080 -a 127.0.0.1` (read-only: **never** `-W`) |
 | First query | `curl -s "http://127.0.0.1:8080/info/current?format=json"` |
 
+**Own partition (done).** `nkarki_daq1` runs on `vm-onlsw-ai-is` with a **private IPC**, so it
+does not appear in the shared testbed list:
+
+```bash
+export TDAQ_IPC_INIT_REF=file:$HOME/tdaq/ipc_root.ref   # private phone book
+ipc_server &                                            # private "initial" partition
+pm_part_hlt.py -p nkarki_daq1                           # -> nkarki_daq1.data.xml
+setup_daq -d nkarki_daq1.data.xml -p nkarki_daq1 -ng -ne -nc
+rc_sender -p nkarki_daq1 -n RootController -c INITIALIZE   # then CONFIGURE, CONNECT, START, STOP
+webis_server -p 8081 -a 127.0.0.1 &                     # second Webis, sees only the private IPC
+```
+
+All of this is wrapped in `daq1/vm/partition.sh`.
+
 > **Note.** The IPC "phone book" on this VM (`TDAQ_IPC_INIT_REF`) points to the shared
 > **TDAQ testbed** (`<testbed-ipc-host>`), so the partitions you see are other people's
 > test partitions, not something running on your VM. The PDF also asks you to run **your own**
@@ -631,14 +645,14 @@ flowchart TD
 | 1 | CERN account; eduVPN optional | ✅ | — |
 | 2 | VM on CERN OpenStack | ✅ provided by the supervisor: `vm-onlsw-ai-is` (DAQ-1); `vm-onlsw-ai-pbeast` is for DAQ-2 | §4 |
 | 3 | Load tdaq-14-00-00 | ✅ | §4 |
-| 4 | **Run a standalone partition on your VM** | ❌ **open** (read the testbed's `mytest` instead) | §4 |
+| 4 | **Run a standalone partition on your VM** | ✅ `nkarki_daq1` on `vm-onlsw-ai-is`, private IPC, driven NONE → RUNNING → CONNECTED (`daq1/vm/partition.sh`) | §4 |
 | 5 | Identify relevant services | ✅ RunCtrl, RunParams, DF, DQM, LHC | §6.2 |
 | 6 | Retrieve example operational data | ✅ | §6.3 |
 | 7 | Webis running; `curl …/info/current?format=json` | ✅ | §3.4, §5 |
 | 8 | DAQ-1 MCP server over a subset of the Run Status page | ✅ all 23 page values (busy table excluded) · 8 tools + 4 discovery tools | §6.6 |
-| 9 | Example: "current status of the partition?" | ✅ (live, on `mytest`; `ATLAS` does not exist on testbed) | §6.5 |
-| 10 | Answers must reflect IS data | ✅ provenance on every value; guards; 34 tests; live evals | §6.7, §11 |
-| 11 | FastMCP; test with any client | ✅ 34 tests via MCP client, `fastmcp call`, Inspector | §12 |
+| 9 | Example: "current status of the partition?" | ✅ on real data from the own partition: "RUNNING" / after STOP "CONNECTED but not running" (`ATLAS` itself only exists in production) | §6.5 |
+| 10 | Answers must reflect IS data | ✅ provenance on every value; guards; 35 tests; live evals | §6.7, §11 |
+| 11 | FastMCP; test with any client | ✅ 35 tests via MCP client, `fastmcp call`, Inspector | §12 |
 | 12 | LangChain/LangGraph agent on the CERN AI Gateway | ✅ `agent.py` | §8 |
 | 13 | DAQ-2 (P-BEAST) | ⏳ not started | §7 |
 
@@ -704,7 +718,7 @@ ssh -N -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
 curl -s "http://127.0.0.1:8080/info/current?format=json"            # tunnel check
 
 cd daq1
-uv run pytest                                                      # 34 offline tests
+uv run pytest                                                      # 35 offline tests
 uv run fastmcp list server.py                                      # tools
 uv run fastmcp call server.py get_run_state partition=mytest       # one tool
 uv run fastmcp dev inspector server.py                             # browser UI

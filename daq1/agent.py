@@ -6,21 +6,36 @@ Run:
     uv run python agent.py                      # interactive
     uv run python agent.py -q "Is mytest running?"
     uv run python agent.py -m qwen3.8-27b-fp16 -v   # other model, show tool calls
+    uv run python agent.py -w http://127.0.0.1:8081 # another Webis (e.g. own partition)
 Needs: AIGW_API_KEY in .env, Webis reachable at WEBIS_URL (default 127.0.0.1:8080).
 """
 
 import argparse
 import asyncio
 import json
+import os
 import pathlib
 
 from fastmcp import Client
+from fastmcp.client.transports import PythonStdioTransport
 from langchain.agents import create_agent
 from langchain_core.tools import StructuredTool
 from langchain_openai import ChatOpenAI
 
 HERE = pathlib.Path(__file__).parent
 AIGW_URL = "https://aigw.cern.ch/"
+DEFAULT_WEBIS = "http://127.0.0.1:8080"
+
+
+def server_transport(webis_url: str | None = None) -> PythonStdioTransport:
+    """Start server.py as a child process, passing WEBIS_URL explicitly.
+
+    MCP's stdio launcher does not forward the parent's environment, so without
+    this the server always used the default Webis (seen live: a request meant for
+    port 8081 went to 8080).
+    """
+    url = webis_url or os.environ.get("WEBIS_URL", DEFAULT_WEBIS)
+    return PythonStdioTransport(HERE / "server.py", env={"WEBIS_URL": url})
 
 SYSTEM_PROMPT = """You assist ATLAS TDAQ shifters with the current state of the online system.
 
@@ -131,13 +146,14 @@ async def main():
     ap.add_argument("-q", "--question", help="ask one question and exit")
     ap.add_argument("-m", "--model", default="gpt-oss-20b")
     ap.add_argument("-v", "--verbose", action="store_true", help="show tool calls")
+    ap.add_argument("-w", "--webis", help="Webis URL (default: $WEBIS_URL or %s)" % DEFAULT_WEBIS)
     args = ap.parse_args()
 
     llm = ChatOpenAI(model=args.model, base_url=AIGW_URL, api_key=load_key(),
                      temperature=0, timeout=120)
 
     # Start server.py as a separate process and talk MCP to it over stdio.
-    async with Client(HERE / "server.py") as client:
+    async with Client(server_transport(args.webis)) as client:
         agent = create_agent(llm, await mcp_tools(client, args.verbose),
                              system_prompt=SYSTEM_PROMPT)
 

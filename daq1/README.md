@@ -84,10 +84,33 @@ uv sync
 echo "AIGW_API_KEY=..." > .env && chmod 600 .env                 # git-ignored
 ```
 
+## Own standalone partition (PDF prerequisite)
+
+A private partition `nkarki_daq1` runs on the DAQ-1 VM, isolated from the shared testbed by a
+**private IPC** (`TDAQ_IPC_INIT_REF=file:~/tdaq/ipc_root.ref`), with its own Webis on port 8081.
+Copy [`vm/partition.sh`](vm/partition.sh) to the VM (`~/tdaq/`) and run it there:
+
+```bash
+./partition.sh up          # private IPC + pm_part_hlt.py + setup_daq -ng + Webis :8081
+./partition.sh run         # INITIALIZE -> CONFIGURE -> CONNECT -> START
+./partition.sh cmd STOP    # any rc_sender command
+./partition.sh state
+./partition.sh down
+```
+
+From the Mac: tunnel port 8081 as well, and point the tools at it:
+
+```bash
+ssh -f -N -o ExitOnForwardFailure=yes -L 8081:127.0.0.1:8081 nkarki@vm-onlsw-ai-is.cern.ch
+uv run python agent.py -w http://127.0.0.1:8081 -q "What is the current status of the nkarki_daq1 partition?"
+```
+
+Demo transcript: [`evals/20261120-own-partition-demo.md`](evals/20261120-own-partition-demo.md).
+
 ## Use
 
 ```bash
-uv run pytest                                   # 34 offline tests (no network)
+uv run pytest                                   # 35 offline tests (no network)
 uv run python agent.py                          # chat; -v shows tool calls; -m <model>
 uv run python agent.py -v -q "Is mytest running?"
 uv run python eval_agent.py                     # live evaluation -> evals/<time>-<model>.md
@@ -155,5 +178,8 @@ uv run fastmcp dev inspector server.py          # MCP Inspector in the browser
      the prompt now say so and point to P-BEAST.
   7. *Interpreting states* — "INITIAL" was explained as "ready for a new run" (wrong: it
      still needs CONFIGURE and CONNECT). Prompt now forbids unrequested interpretation.
+  8. *Environment not passed to the MCP server* — MCP's stdio launcher does not forward the
+     parent's environment, so `WEBIS_URL` was ignored (a request meant for :8081 went to :8080).
+     Fixed: `agent.server_transport()` passes it explicitly; `agent.py -w URL`.
 - **`langchain-mcp-adapters`** requires `mcp<2` and cannot be used with FastMCP 4; a 15-line
   bridge in `agent.py` replaces it.

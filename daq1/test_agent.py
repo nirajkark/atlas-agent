@@ -62,3 +62,14 @@ def test_answer_without_tool_is_flagged_if_it_persists():
     fake = FakeAgent([("no-tool", INVENTED)] * 3)
     r = asyncio.run(agent.answer(fake, "Give me an overview of mytest"))
     assert r.startswith("[Unverified: no IS data was queried]")
+
+
+def test_server_transport_passes_webis_url(monkeypatch):
+    # Seen live: MCP stdio does not forward the parent's env, so a request meant for
+    # the local Webis on :8081 went to the default :8080.
+    monkeypatch.delenv("WEBIS_URL", raising=False)
+    assert agent.server_transport("http://127.0.0.1:8081").env["WEBIS_URL"] == "http://127.0.0.1:8081"
+    monkeypatch.setenv("WEBIS_URL", "http://example:9999")
+    assert agent.server_transport().env["WEBIS_URL"] == "http://example:9999"
+    monkeypatch.delenv("WEBIS_URL")
+    assert agent.server_transport().env["WEBIS_URL"] == agent.DEFAULT_WEBIS

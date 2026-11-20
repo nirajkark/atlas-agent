@@ -38,12 +38,12 @@ QUESTIONS = [
 ]
 
 
-async def run(model: str) -> pathlib.Path:
+async def run(model: str, webis_url: str | None = None) -> pathlib.Path:
     llm = ChatOpenAI(model=model, base_url=agent.AIGW_URL, api_key=agent.load_key(),
                      temperature=0, timeout=120)
     calls: list[str] = []
 
-    async with Client(agent.HERE / "server.py") as client:
+    async with Client(agent.server_transport(webis_url)) as client:
         tools = await agent.mcp_tools(client, verbose=False)
         # wrap tools to record calls for the transcript
         for t in tools:
@@ -77,4 +77,6 @@ async def run(model: str) -> pathlib.Path:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("-m", "--model", default="gpt-oss-20b")
-    print("transcript:", asyncio.run(run(ap.parse_args().model)))
+    ap.add_argument("-w", "--webis", help="Webis URL (default: $WEBIS_URL or 127.0.0.1:8080)")
+    a = ap.parse_args()
+    print("transcript:", asyncio.run(run(a.model, a.webis)))
