@@ -61,7 +61,7 @@ def test_missing_partition_is_not_reported_as_not_running(monkeypatch):
     r = call("get_run_state", partition="nope")
     assert r["available"] is False
     assert r["reason"] == "invalid_object"
-    assert "running" not in r and "state" not in r   # no invented values
+    assert "running" not in r and "state" not in r   # object missing: state unknown
 
 
 def test_webis_down(monkeypatch):
@@ -305,3 +305,36 @@ def test_unknown_partition_lists_real_ones(monkeypatch):
     r = call("get_run_state", partition="ATLAS")
     assert r["available"] is False and r["reason"] == "invalid_partition"
     assert r["existing_partitions"] == ["initial", "mytest"]
+
+
+
+def test_partition_not_up_means_not_running(monkeypatch):
+    # Production on 2026-11-20: only 'initial' was up; ATLAS.js shows
+    # "ATLAS is not running (RC state=NONE)" in that case.
+    def missing(*a):
+        raise webis.WebisError("invalid_partition", "No such partition: ATLAS", URL)
+    monkeypatch.setattr(webis, "get_object", missing)
+    monkeypatch.setattr(webis, "list_partitions", lambda: ["initial"])
+    r = call("get_run_state", partition="ATLAS")
+    assert r["available"] is False and r["reason"] == "invalid_partition"
+    assert r["running"] is False and "not up in IS" in r["running_basis"]
+    assert "state" not in r                          # no invented state value
+
+
+def test_unreachable_is_not_reported_as_not_running(monkeypatch):
+    def down(*a):
+        raise webis.WebisError("unreachable", "Connection refused", URL)
+    monkeypatch.setattr(webis, "get_object", down)
+    r = call("get_run_state", partition="ATLAS")
+    assert "running" not in r                        # unknown, NOT "not running"
+
+
+def test_overview_partition_not_up(monkeypatch):
+    def missing(*a):
+        raise webis.WebisError("invalid_partition", "No such partition: ATLAS", URL)
+    monkeypatch.setattr(webis, "get_object", missing)
+    monkeypatch.setattr(webis, "list_partitions", lambda: ["initial"])
+    r = call("get_partition_overview", partition="ATLAS")
+    assert r["running"] is False and "not up in IS" in r["running_basis"]
+    assert "run_info" not in r and "timing" not in r
+    assert r["existing_partitions"] == ["initial"]

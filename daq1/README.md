@@ -31,6 +31,11 @@ question ─► agent.py (LangGraph, LLM on CERN AI Gateway)
    exception is `lumiblock.started_utc`, which comes from an absolute nanosecond timestamp
    and is therefore real UTC.
 6. **Current data only.** IS has no history; tools and agent say so and point to P-BEAST.
+7. **Partition not up ⇒ not running.** If IS reports `invalid_partition`, `get_run_state` /
+   `get_partition_overview` return `running: false` with `running_basis` — a partition that is not
+   up cannot be running (same result as ATLAS.js `printHeader()`: no state → `NONE` →
+   "ATLAS is not running"). Only for that reason: if Webis is unreachable or an object is
+   missing, `running` is absent (unknown).
 
 ## Tools
 
@@ -110,7 +115,7 @@ Demo transcript: [`evals/20261120-own-partition-demo.md`](evals/20261120-own-par
 ## Use
 
 ```bash
-uv run pytest                                   # 35 offline tests (no network)
+uv run pytest                                   # 38 offline tests (no network)
 uv run python agent.py                          # chat; -v shows tool calls; -m <model>
 uv run python agent.py -v -q "Is mytest running?"
 uv run python eval_agent.py                     # live evaluation -> evals/<time>-<model>.md
@@ -152,6 +157,12 @@ uv run fastmcp dev inspector server.py          # MCP Inspector in the browser
   shown by IS as `11:45:40`, i.e. UTC+1 (CET) on that date; an unset time appears as
   `1/1/70 01:00:00` (epoch 0 in CET). The Webis API spec (`doc/openapi.yaml`) confirms IS
   timestamps are "local time"; tools label them "local time of the Webis server".
+- **Production check of the PDF example (browser, CERN SSO, 2026-11-20).**
+  `https://atlasop.cern.ch/info/current?format=json` listed only `["initial"]`; the `ATLAS`
+  partition was not up (`No such partition: ATLAS`), and the Run Status page fields were empty.
+  Correct answer: "ATLAS is not running" — which DAQ-1 now gives for this case. Scripted access
+  (`auth-get-sso-cookie` with Kerberos) was refused by CERN SSO ("Kerberos is not set up…"),
+  so automated production access needs an approved path.
 - **Production access path.** The Webis API spec lists `https://atlasop.cern.ch` as the
   "ATLAS production server" (and `rhauser-c9s.cern.ch` as a TBED test server). The real
   `ATLAS` partition is only reachable there; `WEBIS_URL` plus authentication would point the

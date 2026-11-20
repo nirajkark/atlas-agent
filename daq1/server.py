@@ -104,7 +104,10 @@ def get_run_state(partition: str) -> dict:
 
     CURRENT state only: IS keeps no history, so this cannot tell when the
     partition was last running (historical data is in P-BEAST). If the partition
-    does not exist, `existing_partitions` lists the real ones.
+    does not exist, `existing_partitions` lists the real ones, and `running` is
+    false with `running_basis` explaining why: a partition that is not up in IS
+    cannot be running (the Run Status page then shows "not running (RC state=NONE)").
+    If Webis is unreachable or the object is missing, `running` is absent: unknown.
 
     Reads RunCtrl.RootController from IS. `running` is true only when the
     root controller state is exactly "RUNNING" (same rule as the ATLAS Run
@@ -123,7 +126,17 @@ def get_run_state(partition: str) -> dict:
     try:
         obj = webis.get_object(partition, "RunCtrl", "RootController")
     except webis.WebisError as e:
-        return unavailable(partition, e)
+        r = unavailable(partition, e)
+        if e.code == "invalid_partition":
+            # A partition that is not up in IS cannot be running: a logical consequence,
+            # not a guess. Same outcome as ATLAS.js printHeader(): no state -> 'NONE' ->
+            # "ATLAS is not running (RC state=NONE)". Only for this reason: if Webis is
+            # unreachable or the object is missing, the state is genuinely unknown.
+            r["running"] = False
+            r["running_basis"] = ("the partition is not up in IS (no such partition), so it "
+                                  "is not running; on the Run Status page this shows as "
+                                  "'not running (RC state=NONE)'")
+        return r
 
     a = obj["attributes"]
     if not a.get("state"):
@@ -220,10 +233,19 @@ def get_partition_overview(partition: str) -> dict:
     states are in P-BEAST). Use this for general "what is the status of X?"
     questions; it returns exactly what get_run_state, get_run_info and
     get_run_timing return, under the keys `state`, `run_info` and `timing`.
+    Top-level `running` (and `running_basis`) repeat the run-state conclusion;
+    if the partition is not up in IS, only that conclusion is returned.
     """
     state = get_run_state(partition)
+    if state.get("reason") == "invalid_partition":
+        # Nothing else to look up; put the conclusion first so it is not missed.
+        return {"partition": partition, "available": False,
+                "running": state.get("running"), "running_basis": state.get("running_basis"),
+                "reason": state["reason"], "detail": state["detail"],
+                "existing_partitions": state.get("existing_partitions")}
     return {"partition": partition,
             "available": state.get("available", False),
+            "running": state.get("running"),     # None = unknown
             "state": state,
             "run_info": get_run_info(partition),
             "timing": get_run_timing(partition)}

@@ -48,6 +48,9 @@ Rules:
   "Webis unreachable").
 - If a partition is RUNNING but fault=true, say both clearly and list
   bad_children and error_reasons.
+- If a tool returns running=false with a running_basis (partition not up in
+  IS), answer that the partition is not running and give that basis. Only in
+  that case; if running is absent, the state is unknown.
 - Timestamps: quote them as IS reports them and say they are in the local
   time of the Webis server. Do not convert them. Exception: fields ending in
   `_utc` are real UTC times; label them UTC. Only attach a time to an event
