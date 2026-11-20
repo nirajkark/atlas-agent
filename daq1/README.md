@@ -86,7 +86,9 @@ uv run pytest                                   # 28 offline tests (no network)
 uv run python agent.py                          # chat; -v shows tool calls; -m <model>
 uv run python agent.py -v -q "Is mytest running?"
 uv run python eval_agent.py                     # live evaluation -> evals/<time>-<model>.md
-uv run fastmcp dev server.py                    # MCP Inspector in the browser
+uv run fastmcp list server.py                   # list the tools and their descriptions
+uv run fastmcp call server.py get_run_state partition=mytest   # call one tool directly
+uv run fastmcp dev inspector server.py          # MCP Inspector in the browser
 ```
 
 ### Use the server from any MCP client (Claude Desktop, Cursor, ...)
