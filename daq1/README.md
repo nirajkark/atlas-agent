@@ -27,14 +27,16 @@ question ─► agent.py (LangGraph, LLM on CERN AI Gateway)
    separately, so one missing object never hides the others.
 4. **Traceable.** Every value carries `source` (Webis URL) and `is_updated` (IS publish time).
 5. **Times are not converted.** IS time strings are returned as reported and labelled
-   "time zone not specified by IS". The only exception is `lumiblock.started_utc`, which
-   comes from an absolute nanosecond timestamp and is therefore real UTC.
+   "local time of the Webis server" (the Webis API documents them as local time). The only
+   exception is `lumiblock.started_utc`, which comes from an absolute nanosecond timestamp
+   and is therefore real UTC.
+6. **Current data only.** IS has no history; tools and agent say so and point to P-BEAST.
 
 ## Tools
 
 | Tool | Run Status panel | IS objects | Live-tested on testbed |
 |---|---|---|---|
-| `get_run_state` | Header ("running?") | `RunCtrl.RootController` | ✅ |
+| `get_run_state` | Header ("running?", Physics/StandBy mode) | `RunCtrl.RootController`, `RunParams.Ready4Physics` | ✅ (mode: offline only, not published) |
 | `get_run_info` | Run number / type / recording | `RunParams.RunParams` | ✅ |
 | `get_run_timing` | Run Timing | `RunParams.LumiBlock`, `RunParams.RunInfo`, `RunParams.RunParams` | ✅ |
 | `get_partition_overview` | Header + run info + timing in one call | (the three above) | ✅ |
@@ -46,6 +48,9 @@ question ─► agent.py (LangGraph, LLM on CERN AI Gateway)
 | `list_is_servers` | — | `/info/current/<p>/is` | ✅ |
 | `list_is_objects` | — | `/info/current/<p>/is/<server>` | ✅ |
 | `read_is_object` | — | any object (attributes + IS descriptions) | ✅ |
+
+**Coverage:** all 23 IS values the Run Status page reads by element id (`ref/ATLAS.html`,
+`ref/ATLAS.js`) are covered. Only the busy table, which ATLAS.js fetches separately, is not.
 
 **Not covered on purpose:** the busy/deadtime panels (`L1CT.CTP.PerLumiBlock.BusyFractions`).
 ATLAS.js reads them by XML position from nested structures; the object is not published on
@@ -82,7 +87,7 @@ echo "AIGW_API_KEY=..." > .env && chmod 600 .env                 # git-ignored
 ## Use
 
 ```bash
-uv run pytest                                   # 28 offline tests (no network)
+uv run pytest                                   # 34 offline tests (no network)
 uv run python agent.py                          # chat; -v shows tool calls; -m <model>
 uv run python agent.py -v -q "Is mytest running?"
 uv run python eval_agent.py                     # live evaluation -> evals/<time>-<model>.md
@@ -122,7 +127,13 @@ uv run fastmcp dev inspector server.py          # MCP Inspector in the browser
   descr, type, range, value}, ...]`; errors are HTTP 404 with `{"error", "error_description"}`.
 - **IS time strings are local time.** `LumiBlock.Time` (ns since epoch) = 10:45:40 UTC was
   shown by IS as `11:45:40`, i.e. UTC+1 (CET) on that date; an unset time appears as
-  `1/1/70 01:00:00` (epoch 0 in CET). The tools still label IS strings as "not specified".
+  `1/1/70 01:00:00` (epoch 0 in CET). The Webis API spec (`doc/openapi.yaml`) confirms IS
+  timestamps are "local time"; tools label them "local time of the Webis server".
+- **Production access path.** The Webis API spec lists `https://atlasop.cern.ch` as the
+  "ATLAS production server" (and `rhauser-c9s.cern.ch` as a TBED test server). The real
+  `ATLAS` partition is only reachable there; `WEBIS_URL` plus authentication would point the
+  same tools at it. Needs supervisor approval. The spec's `attr=` and `regex=` query options
+  would reduce load on production.
 - **Model choice.** On the CERN AI Gateway, 5/6 chat models handled tool calling;
   `gpt-oss-20b` was fastest (~2 s) and most literal; `hf-qwen3-32b-awq` added an unsupported
   claim; `gemma-4-12b` is not available to sandbox keys.
@@ -137,5 +148,12 @@ uv run fastmcp dev inspector server.py          # MCP Inspector in the browser
      partition list (incl. a non-existent "ATLAS") in 4/4 runs. Fixed in code: answers with
      no tool call are retried and, if it persists, prefixed `[Unverified: no IS data was queried]`.
   4. *Servers taken for applications* — fixed via tool description.
+  5. *Invented alternatives* — after `invalid_partition`, the model listed made-up
+     partitions ("ATLAS-01 (example)") even though it had called a tool. Fixed in the tool:
+     the error now includes the real `existing_partitions` (3/3 runs correct afterwards).
+  6. *History questions* — IS cannot say when a run last happened; tool descriptions and
+     the prompt now say so and point to P-BEAST.
+  7. *Interpreting states* — "INITIAL" was explained as "ready for a new run" (wrong: it
+     still needs CONFIGURE and CONNECT). Prompt now forbids unrequested interpretation.
 - **`langchain-mcp-adapters`** requires `mcp<2` and cannot be used with FastMCP 4; a 15-line
   bridge in `agent.py` replaces it.

@@ -41,7 +41,7 @@ def parse_object(raw: list) -> dict:
     return {
         "name": name,
         "type": is_type,
-        "updated": updated,  # as reported by IS; time zone not specified
+        "updated": updated,  # as reported by IS: Webis server local time (per Webis API)
         "attributes": {a["name"]: a["value"] for a in attrs},
         "descriptions": {a["name"]: a.get("descr", "") for a in attrs},
     }

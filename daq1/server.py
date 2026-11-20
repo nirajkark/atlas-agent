@@ -22,26 +22,40 @@ mcp = FastMCP(
         "Information Service (IS). Answer only from tool results. If a tool "
         "returns available=false, say the data is not available and why; never guess. "
         "Use list_partitions / list_is_servers / list_is_objects / read_is_object "
-        "for anything the dedicated tools do not cover."
+        "for anything the dedicated tools do not cover. IS holds only CURRENT values: "
+        "it cannot say when something was last running or what happened in the past "
+        "(that is P-BEAST). Never list partitions or values that no tool returned."
     ),
 )
 
 READ_ONLY = {"readOnlyHint": True, "openWorldHint": True}
-TZ_NOTE = "not specified by IS"
+# Webis API (doc/openapi.yaml): IS timestamps are "local time, format d/m/yy hh:mm:ss[.uuuuuu]",
+# i.e. the Webis host's local time. Measured on the dev VM on 2026-11-20: UTC+1 (CET).
+TZ_NOTE = "local time of the Webis server (not converted)"
 EPOCH_ZERO_PREFIX = "1/1/70"  # IS shows an unset time as the Unix epoch (e.g. "1/1/70 01:00:00")
 
 
 # ---------------------------------------------------------------- helpers
 
 def unavailable(partition: str, err: webis.WebisError) -> dict:
-    """Uniform 'no data' answer: explicit reason, never a guessed value."""
-    return {
+    """Uniform 'no data' answer: explicit reason, never a guessed value.
+
+    For an unknown partition, attach the REAL list of partitions: seen live, the
+    model otherwise offers invented alternatives (e.g. "ATLAS-01 (example)").
+    """
+    r = {
         "partition": partition,
         "available": False,
         "reason": err.code,          # e.g. invalid_object, invalid_partition, unreachable
         "detail": err.description,
         "source": err.url,
     }
+    if err.code == "invalid_partition":
+        try:
+            r["existing_partitions"] = webis.list_partitions()
+        except webis.WebisError:
+            r["existing_partitions"] = None   # could not list them either: say nothing
+    return r
 
 
 def missing_attribute(partition: str, obj: dict, attr: str) -> dict:
@@ -88,12 +102,21 @@ def combine(partition: str, items: dict, **extra) -> dict:
 def get_run_state(partition: str) -> dict:
     """Current run-control state of a TDAQ partition (is it running?).
 
+    CURRENT state only: IS keeps no history, so this cannot tell when the
+    partition was last running (historical data is in P-BEAST). If the partition
+    does not exist, `existing_partitions` lists the real ones.
+
     Reads RunCtrl.RootController from IS. `running` is true only when the
     root controller state is exactly "RUNNING" (same rule as the ATLAS Run
     Status page). If `fault` is true, `bad_children` and `error_reasons` say why.
 
-    `is_updated` is when IS last (re)published this object (DD/MM/YY, time
-    zone not specified by IS). The controller republishes periodically, so it
+    `mode` is the Run Status page header's "Physics" / "StandBy", from
+    RunParams.Ready4Physics.ready4physics (true -> Physics, false -> StandBy).
+    The page shows it only while RUNNING, so `mode` is null otherwise, and also
+    null when Ready4Physics is not published (`mode_note` then says why).
+
+    `is_updated` is when IS last (re)published this object (DD/MM/YY, local
+    time of the Webis server). The controller republishes periodically, so it
     is NOT the time of the last transition or of the run start; for the run
     start time use get_run_info.start_of_run.
     """
@@ -107,11 +130,30 @@ def get_run_state(partition: str) -> dict:
         # Object exists but has no state: report it, don't infer "not running".
         return missing_attribute(partition, obj, "state")
 
+    running = a["state"] == "RUNNING"
+
+    # Header mode (ATLAS.js printHeader): only meaningful while RUNNING.
+    r4p = read_value(partition, "RunParams", "Ready4Physics", "ready4physics")
+    ready = r4p.get("value") if r4p["available"] else None
+    flag = {True: True, "True": True, "true": True, 1: True,
+            False: False, "False": False, "false": False, 0: False}.get(ready)
+    if not r4p["available"]:
+        mode, mode_note = None, f"Ready4Physics not available: {r4p['detail']}"
+    elif flag is None:
+        mode, mode_note = None, f"unrecognised ready4physics value {ready!r}"
+    elif not running:
+        mode, mode_note = None, "mode is only shown while RUNNING"
+    else:
+        mode, mode_note = ("Physics" if flag else "StandBy"), None
+
     return {
         "partition": partition,
         "available": True,
         "state": a["state"],
-        "running": a["state"] == "RUNNING",
+        "running": running,
+        "mode": mode,
+        "mode_note": mode_note,
+        "ready4physics": ready,
         "busy": a.get("busy"),
         "fault": a.get("fault"),
         "transitioning": a.get("transitioning"),
@@ -136,7 +178,7 @@ def get_run_info(partition: str) -> dict:
     Reads RunParams.RunParams from IS. These values persist after a run stops,
     so they may describe the LAST run: use get_run_state to know whether a run
     is active. `end_of_run` is null while the run has not ended. Times are as
-    reported by IS (time zone not specified). `is_updated` is when IS last
+    reported by IS (local time of the Webis server). `is_updated` is when IS last
     published this object, not an event time. `max_events`, `beam_type`,
     `trigger_type` and `detector_mask` are raw IS values, not interpreted.
     """
@@ -174,7 +216,8 @@ def get_run_info(partition: str) -> dict:
 @mcp.tool(annotations=READ_ONLY)
 def get_partition_overview(partition: str) -> dict:
     """One-call status overview of a partition: run state (incl. faults), run
-    parameters and run timing. Use this for general "what is the status of X?"
+    parameters and run timing. CURRENT values only (IS has no history; past
+    states are in P-BEAST). Use this for general "what is the status of X?"
     questions; it returns exactly what get_run_state, get_run_info and
     get_run_timing return, under the keys `state`, `run_info` and `timing`.
     """
@@ -198,7 +241,7 @@ def get_run_timing(partition: str) -> dict:
     - active_time: RunParams.RunInfo.activeTime in seconds, plus HH:MM:SS
       (formatted like the Run Status page).
     - start_of_run: RunParams.RunParams.timeSOR as reported by IS (time zone
-      not specified).
+      local time of the Webis server).
     Each part has its own `available` flag; these objects exist only once a run
     has been started in the partition.
     """

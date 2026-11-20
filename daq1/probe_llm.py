@@ -36,7 +36,7 @@ QUESTION = "Is the mytest partition running?"
 # Real result shape from server.get_run_state for 'mytest' (2026-11-20)
 TOOL_RESULT = {"partition": "mytest", "available": True, "state": "INITIAL", "running": False,
                "busy": False, "fault": False, "last_transition": "INITIALIZE",
-               "is_updated": "20/11/26 10:42:47.605131", "is_updated_tz": "not specified by IS"}
+               "is_updated": "20/11/26 10:42:47.605131", "is_updated_tz": "local time of the Webis server (not converted)"}
 
 
 def chat(model, messages, extra):

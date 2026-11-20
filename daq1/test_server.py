@@ -246,3 +246,62 @@ def test_overview_combines_without_inventing(monkeypatch):
     assert r["state"]["running"] is True and r["state"]["fault"] is True
     assert r["run_info"]["run_number"] == 160902
     assert r["timing"]["lumiblock"]["available"] is False    # not published -> says so
+
+
+# --- header mode: RunParams.Ready4Physics (ATLAS.js printHeader) -----------------------
+# Not published on the testbed; attribute name from ref/ATLAS.js.
+
+def _rc(state):
+    return {"state": state, "busy": False, "fault": False, "lastTransitionName": "START"}
+
+
+def test_mode_physics_when_running(monkeypatch):
+    monkeypatch.setattr(webis, "get_object", fake_is({
+        ("RunCtrl", "RootController"): _rc("RUNNING"),
+        ("RunParams", "Ready4Physics"): {"ready4physics": True}}))
+    r = call("get_run_state", partition="ATLAS")
+    assert r["mode"] == "Physics" and r["mode_note"] is None
+
+
+def test_mode_standby_string_value(monkeypatch):
+    # ATLAS.js compares with the string 'True' (XML); accept both forms
+    monkeypatch.setattr(webis, "get_object", fake_is({
+        ("RunCtrl", "RootController"): _rc("RUNNING"),
+        ("RunParams", "Ready4Physics"): {"ready4physics": "False"}}))
+    assert call("get_run_state", partition="ATLAS")["mode"] == "StandBy"
+
+
+def test_mode_null_when_not_running(monkeypatch):
+    monkeypatch.setattr(webis, "get_object", fake_is({
+        ("RunCtrl", "RootController"): _rc("CONNECTED"),
+        ("RunParams", "Ready4Physics"): {"ready4physics": True}}))
+    r = call("get_run_state", partition="ATLAS")
+    assert r["mode"] is None and "only shown while RUNNING" in r["mode_note"]
+
+
+def test_mode_null_when_not_published(monkeypatch):
+    # The real situation on the testbed partition 'mytest'
+    monkeypatch.setattr(webis, "get_object", fake_is({
+        ("RunCtrl", "RootController"): _rc("RUNNING")}))
+    r = call("get_run_state", partition="mytest")
+    assert r["running"] is True and r["mode"] is None
+    assert "No such object: RunParams.Ready4Physics" in r["mode_note"]
+
+
+def test_mode_unknown_value_not_guessed(monkeypatch):
+    monkeypatch.setattr(webis, "get_object", fake_is({
+        ("RunCtrl", "RootController"): _rc("RUNNING"),
+        ("RunParams", "Ready4Physics"): {"ready4physics": "maybe"}}))
+    r = call("get_run_state", partition="ATLAS")
+    assert r["mode"] is None and "unrecognised" in r["mode_note"]
+
+
+def test_unknown_partition_lists_real_ones(monkeypatch):
+    # Seen live: without this the model invented "ATLAS-01 (example)" etc.
+    def missing(*a):
+        raise webis.WebisError("invalid_partition", "No such partition: ATLAS", URL)
+    monkeypatch.setattr(webis, "get_object", missing)
+    monkeypatch.setattr(webis, "list_partitions", lambda: ["initial", "mytest"])
+    r = call("get_run_state", partition="ATLAS")
+    assert r["available"] is False and r["reason"] == "invalid_partition"
+    assert r["existing_partitions"] == ["initial", "mytest"]
