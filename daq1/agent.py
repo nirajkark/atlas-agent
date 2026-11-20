@@ -32,11 +32,26 @@ Rules:
 - If a partition is RUNNING but fault=true, say both clearly and list
   bad_children and error_reasons.
 - Timestamps: quote them as IS reports them and say the time zone is not
-  specified by IS. Do not convert them. Only attach a time to an event if a
+  specified by IS. Do not convert them. Exception: fields ending in `_utc`
+  are real UTC times; label them UTC. Only attach a time to an event if a
   field names that event (e.g. start_of_run). `is_updated` is just when IS
   last refreshed the data; never present it as the time of a transition.
 - Write for a shifter: lead with a one-sentence answer, then only the
   relevant details. Short and plain; no raw field dumps.
+
+Partitions and tools:
+- If the user names no partition, use list_partitions and ask which one;
+  do not pick one yourself. (The beam status lives in the `initial` partition.)
+- For a general "status" or "overview" question, use get_partition_overview
+  and summarise state (with any fault), run number/type and timing together. Use the panel tools (event counters, trigger config, data
+  quality, beam) when asked about those topics.
+- If a panel tool reports data as unavailable, you may use list_is_objects to
+  confirm what the partition actually publishes, and say so.
+- For anything else, explore with list_is_servers / list_is_objects and read
+  the object with read_is_object; use the attribute descriptions to explain values.
+- IS servers (DF, RunCtrl, PMG, ...) are data containers, not applications.
+  Application names are inside object names (RunCtrl.<app>, DF.ROS.<ROS name>),
+  so list objects before naming applications.
 """
 
 
@@ -60,6 +75,46 @@ async def mcp_tools(client: Client, verbose: bool) -> list[StructuredTool]:
     return tools
 
 
+MAX_RETRIES = 2
+
+
+async def answer(agent, question: str) -> str:
+    """Run the agent; never return silently.
+
+    gpt-oss on the gateway sometimes emits a malformed tool call (e.g. name
+    'list_partitions<|channel|>commentary', args '{""}'), which ends the run
+    with an empty reply. Drop that bad turn, tell the model what went wrong and
+    retry; if it still fails, say so explicitly instead of printing nothing.
+    """
+    messages = [{"role": "user", "content": question}]
+    problem, unverified = "empty reply", None
+    for _ in range(1 + MAX_RETRIES):
+        out = await agent.ainvoke({"messages": messages})
+        last = out["messages"][-1]
+        bad = getattr(last, "invalid_tool_calls", None) or []
+        used_tools = any(getattr(m, "type", None) == "tool" for m in out["messages"])
+        if last.content and not bad and used_tools:
+            return last.content
+        if last.content and not bad:
+            # Fluent answer with no IS query behind it: the most dangerous case.
+            unverified = last.content
+            problem = "answered without calling any tool"
+            hint = ("You answered without querying IS. Every fact must come from a tool: "
+                    "call the appropriate tool now (a word in the question may be a partition "
+                    "name; check with list_partitions), then answer.")
+        else:
+            problem = (f"malformed tool call {bad[0].get('name')!r} with args "
+                       f"{bad[0].get('args')!r}" if bad else "empty reply")
+            hint = "Use the exact tool names and valid JSON arguments, then answer."
+        messages = out["messages"][:-1] + [{
+            "role": "user",
+            "content": f"(System note: your previous step failed: {problem}. {hint} "
+                       f"Original question: {question})"}]
+    if unverified:
+        return f"[Unverified: no IS data was queried]\n{unverified}"
+    return f"[No answer: the model failed {1 + MAX_RETRIES} times ({problem}). Please retry.]"
+
+
 async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-q", "--question", help="ask one question and exit")
@@ -76,8 +131,7 @@ async def main():
                              system_prompt=SYSTEM_PROMPT)
 
         async def ask(q: str) -> str:
-            out = await agent.ainvoke({"messages": [{"role": "user", "content": q}]})
-            return out["messages"][-1].content
+            return await answer(agent, q)
 
         if args.question:
             print(await ask(args.question))

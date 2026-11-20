@@ -30,8 +30,7 @@ class WebisError(Exception):
 
 def object_url(partition: str, server: str, obj: str) -> str:
     # quote() keeps ':' and '.' readable but escapes spaces etc.
-    path = f"/info/current/{partition}/is/{server}/{server}.{obj}"
-    return WEBIS_URL + quote(path, safe="/:.-_")
+    return _url(f"/info/current/{partition}/is/{server}/{server}.{obj}")
 
 
 def parse_object(raw: list) -> dict:
@@ -44,29 +43,58 @@ def parse_object(raw: list) -> dict:
         "type": is_type,
         "updated": updated,  # as reported by IS; time zone not specified
         "attributes": {a["name"]: a["value"] for a in attrs},
+        "descriptions": {a["name"]: a.get("descr", "") for a in attrs},
     }
 
 
-def get_object(partition: str, server: str, obj: str, timeout: float = 5.0) -> dict:
-    """Fetch one IS object. Raises WebisError on any failure."""
-    url = object_url(partition, server, obj)
+def _get_json(url: str, timeout: float):
+    """GET a Webis URL as JSON. Raises WebisError on any failure."""
     try:
         r = httpx.get(url, params={"format": "json"}, timeout=timeout)
     except httpx.HTTPError as e:
         raise WebisError("unreachable", f"cannot reach Webis: {e}", url) from e
 
     if r.status_code != 200:
-        # Webis sends {"error": ..., "error_description": ...} on failure (seen: 404 invalid_object)
+        # Webis sends {"error": ..., "error_description": ...} on failure
+        # (seen: 404 invalid_object / invalid_partition / invalid_server)
         try:
             body = r.json()
             raise WebisError(body.get("error", f"http_{r.status_code}"),
                              body.get("error_description", r.text[:200]), url)
         except ValueError:  # body was not JSON
             raise WebisError(f"http_{r.status_code}", r.text[:200], url)
-
     try:
-        result = parse_object(r.json())
+        return r.json()
+    except ValueError as e:
+        raise WebisError("bad_response", f"not JSON: {e}", url) from e
+
+
+def _url(path: str) -> str:
+    return WEBIS_URL + quote(path, safe="/:.-_")
+
+
+def get_object(partition: str, server: str, obj: str, timeout: float = 5.0) -> dict:
+    """Fetch one IS object. Raises WebisError on any failure."""
+    url = object_url(partition, server, obj)
+    raw = _get_json(url, timeout)
+    try:
+        result = parse_object(raw)
     except ValueError as e:
         raise WebisError("bad_response", str(e), url) from e
     result["source"] = url
     return result
+
+
+def list_partitions(timeout: float = 5.0) -> list[str]:
+    """Names of all partitions known to IPC, e.g. ["initial", "mytest"]."""
+    return _get_json(_url("/info/current"), timeout)
+
+
+def list_servers(partition: str, timeout: float = 5.0) -> list[dict]:
+    """IS servers of a partition: [{name, owner, host, pid, time, ctime}, ...]."""
+    return _get_json(_url(f"/info/current/{partition}/is"), timeout)
+
+
+def list_objects(partition: str, server: str, timeout: float = 10.0) -> list[dict]:
+    """Objects in one IS server: [{name, type, time}, ...]."""
+    return _get_json(_url(f"/info/current/{partition}/is/{server}"), timeout)
