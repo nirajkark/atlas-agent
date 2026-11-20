@@ -498,6 +498,8 @@ T0=data_test, LB=45, Fill=0, R4P=0, SB=0
 > **File paths.** The temp file is `<splunk_area>/tmp/ers.out.<partition>.<pid>`; the rotated file is `<splunk_area>/<partition>.<unix_timestamp>` with no extension. Both are relative to the configured Splunk area, not to `/tmp`.
 >
 > Also: file names and function signatures are **abbreviated** before writing — paths are stripped relative to the package, and function signatures are shortened. The archived `FILE:` value is not the full path the compiler saw.
+>
+> **⚠ Unresolved conflict with an earlier note on this same pipeline.** An earlier working note on this system recorded the temp file as `/tmp/ers.<PID>.out` and the rotated file as `/data/4splunk/<partition>.<timestamp>.out` — a hardcoded path and a different token order than what's given above. This section's version is derived from re-reading `print_issue`/`mts2splunk_receiver.cpp` directly and is presented as a correction, but the two accounts disagree and only one can be right for a given deployment (or both could be right at different tdaq releases). **Treat this as open until checked directly against the live `mts2splunk_receiver.cpp` source and, ideally, an actual file on `/data/4splunk/` or wherever the configured Splunk area resolves to** — don't hardcode a parser against either path form without that check.
 
 ### The archive is already a join
 
@@ -516,6 +518,19 @@ The luminosity block has a second source: the receiver also parses `L1CT::LumiBl
 
 > **This is a genuine gift to the agent.** "Show me every error during run 299119 while beams were stable" is a single archive query with no cross-service join, because the join was already done at ingestion. It also means the enrichment fields inherit IS's freshness — if `run_number` had not yet been published when a message arrived, the record carries `rn=0`.
 
+### A related, but different, service: P-BEAST
+
+`atlas-tdaq-software/pbeast` is a separate archive — it stores **Information Service (IS)** data, not ERS data. It's directly relevant here for two reasons rather than being a tangent:
+
+1. **IS is where the archive's enrichment fields come from.** Everything in the "archive is already a join" table above (`rn`, `T0`, `LB`, `Fill`, `R4P`, `SB`) is sourced from IS objects. Anyone building or debugging the IS side of an agent — or trying to understand why an ERS record shows `rn=0` — is working against the same underlying service that P-BEAST archives.
+2. **It's a usable architecture reference for the Splunk REST client this doc still needs to build.** P-BEAST exposes a Python `ServerProxy` class, authenticated via CERN SSO. That's the same general shape as the "Python client hitting an authenticated CERN-internal REST/RPC endpoint" problem described in §7's Endpoints subsection and §8's option (a). Modeling the ERS Splunk client on P-BEAST's `ServerProxy` pattern — rather than inventing a new client shape from scratch — keeps it consistent with whatever the IS-side teammate builds.
+
+P-BEAST itself is out of scope for this document (it's a different service archiving different data), but it's worth cloning alongside `ers`/`mts`/`ers2idl`/`Jers` if IS enrichment or the REST client design comes up:
+
+```bash
+git clone --depth 1 https://gitlab.cern.ch/atlas-tdaq-software/pbeast.git
+```
+
 ### Chain ordering
 
 When an issue has a cause, the receiver writes the **cause first**, then the parent — deliberately, because "splunk … seems to read from the end of the file". All records in one chain share the same `gh` group hash and the same severity (a cause inherits its parent's severity in the archive). So reconstructing a causal chain means: group by `gh`, then order by `chained` descending (2 → 1).
@@ -533,7 +548,7 @@ Splunk-side field extraction is configured in `/opt/splunk/etc/apps/ers/default/
 | Production | `https://atlasop.cern.ch/tdaq/ers/en-US/static/app/ers/ers.html` (reverse-proxied; real backend deliberately hidden) |
 | Test / staging | `https://vm-ers-test.cern.ch:8000/en-US/app/ers/ers_browser_html` |
 
-Both were located via CERN's internal on-call shortcuts TWiki, reachable only from the CERN network or VPN. For a programmatic client the target is Splunk's REST API, conventionally on port **8089** (management) rather than 8000 (web UI) — **this remains unconfirmed and needs settling with a CERN contact along with credentials.**
+Both were located via CERN's internal on-call shortcuts TWiki — specifically the **`PointOneDataFlow`** page — reachable only from the CERN network or VPN. For a programmatic client the target is Splunk's REST API, conventionally on port **8089** (management) rather than 8000 (web UI) — **this remains unconfirmed and needs settling with a CERN contact along with credentials.**
 
 ---
 
@@ -558,7 +573,7 @@ init · debug · log · info · warning · error · fatal
 
 > **Python is write-only for ERS.** A Python agent has three options: (a) query the Splunk archive over REST and accept that it is not live; (b) run `mts_ers_receiver` as a subprocess and parse its output — workable as a stopgap; (c) build a small C++ or Java gateway exposing MTS subscription over JSON, which is the same shape as the IPC gateway the Run Control and Process Management agents need anyway.
 >
-> Option (c) is the one to plan for. It is one gateway pattern serving three services.
+> Option (c) is the one to plan for. It is one gateway pattern serving three services. For option (a), see the P-BEAST note in §7 — its `ServerProxy` pattern is the closest existing precedent for a Python client against a CERN-internal, SSO-authenticated TDAQ service.
 
 ---
 
@@ -576,6 +591,7 @@ init · debug · log · info · warning · error · fatal
 | 8 | **Causes are written before their parent.** | Naive time-ordered reading inverts causality. Group by `gh`, order by `chained`. |
 | 9 | **Message text is a format template.** | It can change between releases. Match on `msgID` and `params`. |
 | 10 | **Only 11 of 14 context fields survive the wire.** | Don't design a schema around fields the transport drops. |
+| 11 | **The exact archive file-path format is unresolved.** | Two accounts of the temp/rotated file paths disagree (see §7 callout) — don't hardcode a parser against either until checked directly against source or a live file. |
 
 ---
 
@@ -621,6 +637,8 @@ Consistent with the generic surface proposed for the RC and PMG agents:
 | `mts_health` | read | `MTSWorkerStat` / `MTSReceiverStat` — is the pipeline itself keeping up? |
 
 Reuse the MTS subscription grammar as the filter syntax for `find_issues` wherever possible. It already covers `app`, `msg`, `qual`, `sev`, `param(*)` and `context(*)`; operators know it; and it makes the live and archive paths look the same to the model.
+
+When implementing the Splunk REST client backing `find_issues`/`summarise_issues`, model it on **P-BEAST's `ServerProxy` pattern** (§7) rather than inventing a new client shape — it's the existing precedent within this same codebase for a Python client against a CERN-SSO-authenticated TDAQ service, and keeps this agent consistent with whatever the IS-side agent ends up using.
 
 ### 10.3 The response envelope
 
@@ -700,6 +718,7 @@ The `caveats` block is the ERS-specific addition. Three of the traps in §9 — 
 | Subscription parser | `mts` | `mts/SubscriptionParser.h` |
 | Wire format: `Issue`, `RemoteContext`, `Severity`, `CauseIssue`; **"we never send DEBUG over MTS"** | `ers2idl` | `idl/ers2idl/ers2idl.idl` |
 | Java receiver `MTSInStream extends ers.AbstractInputStream`, `@ErsStreamName` | `Jers` | `jsrc/ers/AbstractInputStream.java`, `jsrc/ers/ErsStreamName.java` |
+| Python `ServerProxy` client pattern, CERN-SSO auth — architecture reference for the ERS Splunk REST client | `pbeast` | `README.md`, `python/pbeastpy.cpp` |
 
 ### 11.2 Published literature
 
@@ -709,14 +728,16 @@ The `caveats` block is the ERS-specific addition. Three of the traps in §9 — 
 - **["Experience with Shifter Assistant"](https://cds.cern.ch/record/2648925)** — CHEP 2018, *EPJ Web Conf.* **214** 01028. The CEP consumer of this stream, and its 200+ directives.
 - **[DAQling ERS documentation](https://daqling.docs.cern.ch/ers/)** and **[DUNE-DAQ/ers](https://github.com/dune-daq/ers)** — two independent forks/derivatives of ATLAS ERS. Useful as external, readable restatements of the same API; **not** authoritative for ATLAS-specific behaviour.
 - **[TDAQ release notes](https://atlas-tdaq-sw-releases.web.cern.ch/release-notes/)** — authoritative for anything release-specific. `ers2idl` was introduced in tdaq-11-02-00 to pass ERS issues over CORBA.
+- **Live infrastructure host-status page** — internal TDAQ monitoring, checked to confirm the Splunk infrastructure for TDAQ was running as of 2025. A freshness check rather than a design source: everything else in this document is derived from source code and design docs, which can go stale; this was the one live confirmation that the pipeline described here is still operating, not just historically documented.
 
 ### 11.3 What remains open
 
 | Item | Status |
 |---|---|
-| Splunk REST API port and credentials | **Open.** Port 8089 is the Splunk convention but is unverified here. Authentication method (CERN SSO / service account / token) unknown. The one genuinely blocking item. |
+| Splunk REST API port and credentials | **Open.** Port 8089 is the Splunk convention but is unverified here. Authentication method (CERN SSO / service account / token) unknown. The one genuinely blocking item for building the client. |
 | Whether `-m`/`-a` drop filters are active in production | **Open.** Determines archive completeness. Ask the operations group. |
 | Splunk retention policy for the `ers` index | **Open.** ~30 M messages archived in Run 1 is a volume figure, not a retention guarantee. |
+| Exact archive temp/rotated file-path format | **Open — conflicting accounts.** See the §7 callout: one account gives `/tmp/ers.<PID>.out` → `/data/4splunk/<partition>.<timestamp>.out`; a source re-read gives `<splunk_area>/tmp/ers.out.<partition>.<pid>` → `<splunk_area>/<partition>.<unixtime>`. Needs direct verification against `mts2splunk_receiver.cpp` and/or a live deployment before any parser depends on it. |
 | Live subscription from Python | **Resolved — none exists.** Requires a gateway; plan it jointly with the IPC gateway for RC/PMG. |
 | Archive record schema | **Resolved** against source, including the two corrections in §7. |
 | IS enrichment sources | **Resolved** — exact object and attribute names in §7. |
