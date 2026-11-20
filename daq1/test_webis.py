@@ -1,6 +1,6 @@
 """Offline tests for webis.py using responses captured from the testbed (2026-11-20).
 
-Run:  python3 daq1/test_webis.py
+Run:  uv run pytest
 """
 
 import httpx
@@ -32,8 +32,8 @@ def test_url():
     assert webis.object_url("ATLAS", "DF", "TopMIG-IS:HLT.info").endswith("/DF/DF.TopMIG-IS:HLT.info")
 
 
-def test_ok():
-    webis.httpx.get = fake_get(200, ROOT_CONTROLLER)
+def test_ok(monkeypatch):
+    monkeypatch.setattr(webis.httpx, 'get', fake_get(200, ROOT_CONTROLLER))
     o = webis.get_object("mytest", "RunCtrl", "RootController")
     assert o["type"] == "RCStateInfo"
     assert o["updated"] == "20/11/26 10:42:47.605131"
@@ -41,8 +41,8 @@ def test_ok():
     assert o["attributes"]["fault"] is False
 
 
-def test_missing_object():
-    webis.httpx.get = fake_get(404, NOT_FOUND)
+def test_missing_object(monkeypatch):
+    monkeypatch.setattr(webis.httpx, 'get', fake_get(404, NOT_FOUND))
     try:
         webis.get_object("mytest", "RunCtrl", "DoesNotExist")
     except webis.WebisError as e:
@@ -52,10 +52,10 @@ def test_missing_object():
         raise AssertionError("expected WebisError")
 
 
-def test_unreachable():
+def test_unreachable(monkeypatch):
     def boom(url, params=None, timeout=None):
         raise httpx.ConnectError("Connection refused")
-    webis.httpx.get = boom
+    monkeypatch.setattr(webis.httpx, 'get', boom)
     try:
         webis.get_object("mytest", "RunCtrl", "RootController")
     except webis.WebisError as e:
@@ -63,10 +63,3 @@ def test_unreachable():
     else:
         raise AssertionError("expected WebisError")
 
-
-if __name__ == "__main__":
-    real_get = httpx.get
-    for t in [test_url, test_ok, test_missing_object, test_unreachable]:
-        t()
-        webis.httpx.get = real_get
-        print("PASS", t.__name__)
