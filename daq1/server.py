@@ -71,4 +71,6 @@ def get_run_state(partition: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    import logging
+    logging.getLogger("fastmcp").setLevel(logging.WARNING)  # keep stdio clients' terminals quiet
+    mcp.run(show_banner=False)
