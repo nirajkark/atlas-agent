@@ -71,3 +71,44 @@ def test_webis_down(monkeypatch):
     r = call("get_run_state", partition="mytest")
     assert r == {"partition": "mytest", "available": False, "reason": "unreachable",
                  "detail": "Connection refused", "source": URL}
+
+
+# --- get_run_info: built from the live RunParams.RunParams of 'mytest' (2026-11-20) ---
+
+def run_params(**override):
+    attrs = {"run_number": 160902, "max_events": 0, "recording_enabled": 0, "trigger_type": 0,
+             "run_type": "Physics", "det_mask": "00000000000000000000280000000001",
+             "beam_type": 0, "beam_energy": 0, "filename_tag": "", "T0_project_tag": "",
+             "timeSOR": "20/11/26 11:27:25", "timeEOR": "1/1/70 01:00:00", "totalTime": 0}
+    attrs.update(override)
+    return {"name": "RunParams.RunParams", "type": "RunParams",
+            "updated": "20/11/26 11:27:25.742991", "source": URL, "attributes": attrs}
+
+
+def test_run_info_live_shape(monkeypatch):
+    monkeypatch.setattr(webis, "get_object", lambda *a: run_params())
+    r = call("get_run_info", partition="mytest")
+    assert r["available"] is True
+    assert r["run_number"] == 160902 and r["run_type"] == "Physics"
+    assert r["recording_enabled"] is False          # 0 -> Disabled, as in ATLAS.js
+    assert r["start_of_run"] == "20/11/26 11:27:25"
+    assert r["end_of_run"] is None                  # epoch-0 placeholder is not a date
+    assert r["max_events"] == 0                     # raw, not interpreted as "unlimited"
+    assert r["project_tag"] is None                 # empty string -> not set
+    assert "totalTime" not in r and "total_time" not in r
+
+
+def test_run_info_ended_run(monkeypatch):
+    monkeypatch.setattr(webis, "get_object",
+                        lambda *a: run_params(recording_enabled=1, timeEOR="20/11/26 12:00:00"))
+    r = call("get_run_info", partition="mytest")
+    assert r["recording_enabled"] is True
+    assert r["end_of_run"] == "20/11/26 12:00:00"
+
+
+def test_run_info_missing(monkeypatch):
+    def missing(*a):
+        raise webis.WebisError("invalid_object", "No such object: RunParams.RunParams", URL)
+    monkeypatch.setattr(webis, "get_object", missing)
+    r = call("get_run_info", partition="initial")
+    assert r["available"] is False and "run_number" not in r

@@ -32,7 +32,9 @@ Rules:
 - If a partition is RUNNING but fault=true, say both clearly and list
   bad_children and error_reasons.
 - Timestamps: quote them as IS reports them and say the time zone is not
-  specified by IS. Do not convert them.
+  specified by IS. Do not convert them. Only attach a time to an event if a
+  field names that event (e.g. start_of_run). `is_updated` is just when IS
+  last refreshed the data; never present it as the time of a transition.
 - Write for a shifter: lead with a one-sentence answer, then only the
   relevant details. Short and plain; no raw field dumps.
 """
