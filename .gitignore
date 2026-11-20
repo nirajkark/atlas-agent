@@ -25,3 +25,10 @@
 # Local scratch
 scratch/
 tmp/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+.pytest_cache/

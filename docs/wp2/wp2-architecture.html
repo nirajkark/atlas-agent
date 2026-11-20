@@ -1,0 +1,822 @@
+<title>DAQ Agent Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+/* Layout: one reading column; the architecture diagram and decision grid break out to full wrap width. Tokens shared with the WP1 pages. */
+:root{
+  --ground:#F2F5F7;
+  --surface:#FFFFFF;
+  --surface-2:#E8EEF2;
+  --ink:#111A21;
+  --ink-2:#3A4854;
+  --muted:#65757F;
+  --rule:#D2DAE1;
+  --rule-2:#B2BEC8;
+  --est:#0B6E99;      /* established practice */
+  --est-soft:#DBEBF3;
+  --infra:#136B54;    /* existing TDAQ infrastructure */
+  --infra-soft:#D7EDE5;
+  --ours:#A8500B;     /* project contribution */
+  --ours-soft:#F7E7D5;
+  --safe:#A32B2B;     /* safety boundary */
+  --safe-soft:#F6DDDD;
+  --x:#5E4595;        /* cross-cutting */
+  --x-soft:#E6E0F4;
+  --shadow:0 1px 2px rgba(17,26,33,.06),0 10px 30px -14px rgba(17,26,33,.22);
+  --f-display:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0B1115;--surface:#131C22;--surface-2:#1A252D;
+    --ink:#E1E8ED;--ink-2:#B2C1CB;--muted:#8697A0;
+    --rule:#232F38;--rule-2:#38474F;
+    --est:#54B4DC;--est-soft:#11303E;
+    --infra:#4FBE9B;--infra-soft:#0D2E25;
+    --ours:#DE9A50;--ours-soft:#392917;
+    --safe:#E07575;--safe-soft:#371818;
+    --x:#A895DE;--x-soft:#231D37;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0B1115;--surface:#131C22;--surface-2:#1A252D;
+  --ink:#E1E8ED;--ink-2:#B2C1CB;--muted:#8697A0;
+  --rule:#232F38;--rule-2:#38474F;
+  --est:#54B4DC;--est-soft:#11303E;
+  --infra:#4FBE9B;--infra-soft:#0D2E25;
+  --ours:#DE9A50;--ours-soft:#392917;
+  --safe:#E07575;--safe-soft:#371818;
+  --x:#A895DE;--x-soft:#231D37;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -14px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:var(--f-body);font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+main{
+  padding-block:0 120px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:1140px;margin:0 auto}
+.prose{max-width:700px}
+a{color:var(--est)}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--est);outline-offset:2px;border-radius:2px}
+
+header.mast{padding:56px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:14px}
+.eyebrow{
+  font-family:var(--f-mono);font-size:11.5px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--est);margin:0 0 16px;
+}
+h1{
+  font-family:var(--f-display);font-weight:700;
+  font-size:clamp(2rem,5vw,3rem);line-height:1.05;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance;
+}
+.standfirst{font-size:1.15rem;line-height:1.55;color:var(--ink-2);margin:0;max-width:64ch}
+.facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin:22px 0 0;padding:0;list-style:none;
+  font-family:var(--f-mono);font-size:12.5px;color:var(--ink-2)}
+.facts b{color:var(--ink);font-weight:600}
+
+nav.toc{display:flex;flex-wrap:wrap;gap:6px;padding:18px 0 30px;border-bottom:1px solid var(--rule)}
+nav.toc a{
+  font-family:var(--f-mono);font-size:12px;text-decoration:none;color:var(--ink-2);
+  border:1px solid var(--rule-2);border-radius:999px;padding:4px 11px;background:var(--surface);
+}
+nav.toc a:hover{border-color:var(--est);color:var(--est)}
+
+section{padding:44px 0 6px}
+h2{
+  font-family:var(--f-display);font-weight:700;font-size:1.65rem;line-height:1.15;
+  letter-spacing:-.015em;margin:0 0 6px;text-wrap:balance;
+}
+.sec-k{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+h3{font-family:var(--f-display);font-weight:600;font-size:1.12rem;margin:0 0 6px;line-height:1.25;text-wrap:balance}
+p{margin:0 0 14px}
+.lede{color:var(--ink-2);margin-bottom:22px}
+cite{font-style:normal}
+.c{font-family:var(--f-mono);font-size:.78em;color:var(--est);text-decoration:none;white-space:nowrap}
+.c:hover{text-decoration:underline}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--surface-2);padding:1px 5px;border-radius:3px}
+
+/* constraints */
+.goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:8px 0 0;padding:0;list-style:none}
+.goals li{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;font-size:.95rem;line-height:1.5;min-width:0}
+.goals b{font-family:var(--f-display);font-weight:600;display:block;margin-bottom:3px;font-size:1rem}
+.src{font-family:var(--f-mono);font-size:11px;color:var(--muted);display:block;margin-top:6px}
+
+/* ---------- architecture diagram ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 16px;font-family:var(--f-mono);font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:13px;height:13px;border-radius:3px;border:2px solid;display:inline-block}
+.lg-est i{border-color:var(--est);background:var(--est-soft)}
+.lg-ours i{border-color:var(--ours);background:var(--ours-soft)}
+.lg-safe i{border-color:var(--safe);background:var(--safe-soft)}
+.lg-infra i{border-color:var(--infra);background:var(--infra-soft)}
+.lg-x i{border-color:var(--x);background:var(--x-soft)}
+
+.arch-scroll{overflow-x:auto;padding-bottom:4px}
+.arch{
+  display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:16px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:20px;box-shadow:var(--shadow);
+  min-width:0;
+}
+.stack{display:flex;flex-direction:column;gap:0;min-width:0}
+.layer{
+  display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:14px;align-items:center;
+  border:2px solid var(--rule-2);border-radius:8px;padding:12px 14px;background:var(--surface);position:relative;
+}
+.layer + .layer, .layer + .pair, .pair + .layer{margin-top:22px}
+.layer + .layer::before, .pair + .layer::before, .layer + .pair::before{
+  content:"";position:absolute;left:50%;top:-22px;width:2px;height:20px;background:var(--rule-2);transform:translateX(-1px);
+}
+.layer + .layer::after, .pair + .layer::after, .layer + .pair::after{
+  content:"";position:absolute;left:50%;top:-7px;transform:translateX(-5px);
+  border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--rule-2);
+}
+.pair{position:relative;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);gap:12px}
+.pair > .layer{margin:0}
+.pair > .layer::before,.pair > .layer::after{display:none}
+.layer.est{border-color:var(--est);background:linear-gradient(var(--est-soft),var(--est-soft)) left/6px 100% no-repeat,var(--surface)}
+.layer.ours{border-color:var(--ours);background:var(--ours-soft)}
+.layer.safe{border-color:var(--safe);background:linear-gradient(var(--safe-soft),var(--safe-soft)) left/6px 100% no-repeat,var(--surface)}
+.layer.infra{border-color:var(--infra);background:linear-gradient(var(--infra-soft),var(--infra-soft)) left/6px 100% no-repeat,var(--surface)}
+.layer.user{border-style:dashed;background:var(--surface-2)}
+.lname{font-family:var(--f-display);font-weight:700;font-size:.95rem;line-height:1.2}
+.lname small{display:block;font-family:var(--f-mono);font-weight:500;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.lbody{font-size:.88rem;line-height:1.45;color:var(--ink-2);min-width:0}
+.lbody .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.chip{font-family:var(--f-mono);font-size:11.5px;font-weight:500;padding:3px 8px;border-radius:4px;background:var(--surface-2);color:var(--ink);border:1px solid var(--rule-2);white-space:nowrap}
+.chip.svc{border-color:var(--est);color:var(--est);background:var(--surface)}
+.chip.doc{border-style:dashed}
+.chip.no{text-decoration:line-through;color:var(--muted)}
+.ldec{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.dref{font-family:var(--f-mono);font-size:11px;font-weight:600;text-decoration:none;color:var(--ink-2);border:1px solid var(--rule-2);border-radius:999px;padding:1px 8px;background:var(--surface);white-space:nowrap}
+.dref:hover{border-color:var(--est);color:var(--est)}
+.tag-ours{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ours);font-weight:600}
+
+.rails{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rail{border:2px solid var(--x);background:var(--x-soft);border-radius:8px;padding:12px 13px;font-size:.85rem;line-height:1.45;color:var(--ink-2)}
+.rail h4{font-family:var(--f-display);font-size:.92rem;margin:0 0 4px;color:var(--ink)}
+.rail .ldec{flex-direction:row;justify-content:flex-start;margin-top:8px;align-items:center}
+.rail-k{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--x);margin:0 0 2px}
+.arch-note{font-size:.9rem;color:var(--muted);margin:12px 0 0}
+
+@media (max-width:820px){
+  .arch{grid-template-columns:1fr;padding:14px}
+  .layer{grid-template-columns:1fr;gap:6px}
+  .ldec{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start}
+  .pair{grid-template-columns:1fr}
+}
+
+/* walkthrough */
+ol.flow{list-style:none;padding:0;margin:8px 0 0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;counter-reset:f}
+ol.flow li{counter-increment:f;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:12px 13px 13px;font-size:.88rem;line-height:1.45;min-width:0}
+ol.flow li::before{content:counter(f);font-family:var(--f-mono);font-weight:600;font-size:11px;color:var(--surface);background:var(--ink-2);border-radius:999px;width:20px;height:20px;display:inline-grid;place-items:center;margin-bottom:8px}
+ol.flow li b{display:block;font-family:var(--f-display);font-weight:600;font-size:.95rem;color:var(--ink);margin-bottom:3px}
+ol.flow li.hit{border-color:var(--ours);background:var(--ours-soft)}
+.env{font-family:var(--f-mono);font-size:11px;line-height:1.5;background:var(--surface-2);border-radius:4px;padding:6px 8px;margin-top:6px;overflow-wrap:anywhere}
+.answer{margin:12px 0 0;padding:12px 16px;border-left:4px solid var(--ours);background:var(--surface);border-radius:0 6px 6px 0;font-size:1rem}
+.answer b{font-family:var(--f-display)}
+@media (max-width:900px){ol.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){ol.flow{grid-template-columns:1fr}}
+
+/* decisions */
+.dgroup{margin:28px 0 0}
+.dgroup > h3{font-family:var(--f-mono);font-weight:500;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:820px){.dgrid{grid-template-columns:1fr}}
+article.dec{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:16px 18px 14px;min-width:0;scroll-margin-top:16px}
+article.dec.ours{border:2px solid var(--ours)}
+article.dec:target{box-shadow:0 0 0 3px var(--est-soft),var(--shadow)}
+.dhead{display:flex;gap:10px;align-items:baseline;margin-bottom:6px}
+.did{font-family:var(--f-mono);font-weight:600;font-size:12px;color:var(--est);flex:none}
+article.dec.ours .did{color:var(--ours)}
+.dhead h4{font-family:var(--f-display);font-weight:600;font-size:1.05rem;line-height:1.3;margin:0;text-wrap:balance}
+article.dec dl{margin:8px 0 0;display:grid;grid-template-columns:78px minmax(0,1fr);gap:6px 12px;font-size:.9rem;line-height:1.5}
+article.dec dt{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+article.dec dd{margin:0;color:var(--ink-2);min-width:0}
+article.dec dd ul{margin:0;padding-left:1.05em}
+article.dec dd li{margin:0 0 3px}
+@media (max-width:480px){article.dec dl{grid-template-columns:1fr;gap:2px}article.dec dd{margin-bottom:6px}}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;line-height:1.45}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--rule)}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+td:first-child{font-family:var(--f-display);font-weight:600;color:var(--ink);white-space:nowrap}
+td{color:var(--ink-2)}
+.num{font-variant-numeric:tabular-nums}
+
+/* established vs ours */
+.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:720px){.split{grid-template-columns:1fr}}
+.panel{border-radius:8px;padding:16px 18px;border:2px solid var(--est);background:var(--surface);min-width:0}
+.panel.ours{border-color:var(--ours);background:var(--ours-soft)}
+.panel h3{margin-bottom:8px}
+.panel ul{margin:0;padding-left:1.1em;font-size:.93rem;line-height:1.5;color:var(--ink-2)}
+.panel li{margin-bottom:6px}
+
+/* steps + questions */
+ol.steps{margin:6px 0 0;padding-left:1.3em;font-size:.95rem}
+ol.steps li{margin-bottom:8px;padding-left:4px}
+ol.steps .mono{color:var(--muted)}
+.qs{display:grid;gap:10px;margin:10px 0 0;padding:0;list-style:none}
+.qs li{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--est);border-radius:0 6px 6px 0;padding:12px 16px;font-size:.95rem;line-height:1.5}
+.qs b{font-family:var(--f-display);font-weight:600}
+
+/* references */
+details.refs{margin-top:10px;background:var(--surface);border:1px solid var(--rule);border-radius:8px}
+details.refs summary{cursor:pointer;padding:14px 18px;font-family:var(--f-display);font-weight:600}
+ol.reflist{margin:0;padding:4px 22px 18px 52px;font-size:.88rem;line-height:1.5;color:var(--ink-2)}
+ol.reflist li{margin-bottom:7px;padding-left:4px;scroll-margin-top:16px;overflow-wrap:anywhere}
+ol.reflist li:target{background:var(--est-soft);border-radius:3px}
+.kind{font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:3px;margin-left:6px;white-space:nowrap}
+.k-pr{color:var(--infra);border:1px solid var(--infra)}
+.k-pre{color:var(--ours);border:1px solid var(--ours)}
+.k-int{color:var(--x);border:1px solid var(--x)}
+.ev-note{font-size:.9rem;color:var(--ink-2);background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:14px 18px;margin-top:14px}
+.ev-note b{font-family:var(--f-display)}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);font-size:.85rem;color:var(--muted)}
+</style>
+
+<main>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">ATLAS TDAQ · DAQ-WP2 · Architecture overview · Supervisor review, 16 Oct 2026</p>
+  <h1>DAQ Agent Architecture</h1>
+  <p class="standfirst">A read-only, natural-language assistant for shift operators over the five TDAQ live runtime services: Run Control, Process Management, Configuration (OKS), Information Service and Error Reporting. Every design decision below names the evidence behind it.</p>
+  <ul class="facts">
+    <li><b>5</b> service agents + <b>1</b> orchestrator</li>
+    <li><b>MCP</b> agent-to-service protocol</li>
+    <li><b>Read-only</b> by construction</li>
+    <li><b>Local</b> open-weights model</li>
+    <li><b>14</b> design decisions</li>
+    <li>Evidence base: <b>52</b> peer-reviewed sources, <b>5</b> preprints or talks (flagged)</li>
+  </ul>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#constraints">Constraints</a>
+  <a href="#overview">Architecture</a>
+  <a href="#walkthrough">One query, end to end</a>
+  <a href="#decisions">Design decisions</a>
+  <a href="#risks">Risks</a>
+  <a href="#evaluation">Evaluation</a>
+  <a href="#contribution">Contribution</a>
+  <a href="#next">Plan &amp; questions</a>
+  <a href="#references">References</a>
+</nav>
+
+<!-- ============ CONSTRAINTS ============ -->
+<section id="constraints">
+  <p class="sec-k">Starting point</p>
+  <h2>What the architecture must satisfy</h2>
+  <p class="lede prose">These constraints come from the WP1 service studies and the project brief. Each one rules out designs that are reasonable elsewhere.</p>
+  <ul class="goals">
+    <li><b>Serve shifters and experts</b>Routine status and procedure questions, plus "something is wrong, why?" questions that today get escalated to an expert.<span class="src">Project brief</span></li>
+    <li><b>Never change the running system</b>The assistant reads and explains. Humans decide and act. Automated recovery is already done by CHIP.<span class="src">WP1 RC/PMG §2 · <a class="c" href="#ref-1">[1]</a></span></li>
+    <li><b>No cloud inference on operational data</b>Facility policy at comparable labs keeps models on site.<span class="src"><a class="c" href="#ref-2">[2]</a> <a class="c" href="#ref-3">[3]</a> <a class="c" href="#ref-4">[4]</a></span></li>
+    <li><b>Do not load the live system</b>Queries against IS and P-BEAST must be bounded; some read calls fan out without limit or create server-side state.<span class="src">WP1 IS §6–8, PMG §4</span></li>
+    <li><b>Five services, three colliding vocabularies</b><code>RUNNING</code> means "taking data" in Run Control and "OS process alive" in Process Management.<span class="src">WP1 RC/PMG §6</span></li>
+    <li><b>Testable without Point 1</b>Development and benchmarks must run on captured snapshots and a local test partition.<span class="src">WP1 IS §10 · <a class="c" href="#ref-5">[5]</a></span></li>
+  </ul>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section id="overview">
+  <p class="sec-k">Architecture at a glance</p>
+  <h2>Seven layers, one direction of data flow</h2>
+  <p class="lede prose">A question enters at the top. Facts flow up from TDAQ through typed layers, so the model never sees a raw value without its meaning attached. The pills on the right of each layer link to the decision that justifies it.</p>
+
+  <div class="legend" aria-label="Legend">
+    <span class="lg-est"><i></i>Established practice (adopted, cited)</span>
+    <span class="lg-ours"><i></i>Project contribution</span>
+    <span class="lg-safe"><i></i>Safety boundary</span>
+    <span class="lg-infra"><i></i>Existing TDAQ infrastructure</span>
+    <span class="lg-x"><i></i>Cross-cutting</span>
+  </div>
+
+  <div class="arch-scroll">
+  <div class="arch" role="img" aria-label="Layered architecture: operator, orchestrator, service agents and documentation agent, response contract, semantic mapping layer, MCP tool servers, data access, and TDAQ services or replay fixtures. Side rails: local LLM, trace log, replay and evaluation harness.">
+    <div class="stack">
+
+      <div class="layer user">
+        <div class="lname"><small>L0 · User</small>Shifter or expert</div>
+        <div class="lbody">Natural-language question in the control room, e.g. <em>"Why did TileCal stop?"</em> Feels like one assistant.</div>
+        <div class="ldec"><a class="dref" href="#d1">D1</a></div>
+      </div>
+
+      <div class="layer est">
+        <div class="lname"><small>L1 · Plan</small>Orchestrator</div>
+        <div class="lbody">
+          <div class="chips"><span class="chip">classify &amp; route</span><span class="chip">decompose</span><span class="chip">compose answer</span><span class="chip">detect cross-service disagreement</span></div>
+          Star topology, fixed workflow. Never calls TDAQ itself.
+        </div>
+        <div class="ldec"><a class="dref" href="#d3">D3</a><a class="dref" href="#d4">D4</a></div>
+      </div>
+
+      <div class="pair">
+        <div class="layer est">
+          <div class="lname"><small>L2 · Act</small>Service agents</div>
+          <div class="lbody">
+            <div class="chips"><span class="chip svc">RC</span><span class="chip svc">PMG</span><span class="chip svc">OKS</span><span class="chip svc">IS</span><span class="chip svc">ERS</span></div>
+            One per service. ReAct loop, small tool set, round cap.
+          </div>
+          <div class="ldec"><a class="dref" href="#d2">D2</a><a class="dref" href="#d5">D5</a></div>
+        </div>
+        <div class="layer est">
+          <div class="lname"><small>L2 · Docs</small>Procedures</div>
+          <div class="lbody"><div class="chips"><span class="chip doc">RAG</span><span class="chip doc">MCP prompts</span></div>Manuals, logbook, SOPs.</div>
+          <div class="ldec"><a class="dref" href="#d11">D11</a></div>
+        </div>
+      </div>
+
+      <div class="layer ours">
+        <div class="lname"><small>L3 · Contract</small>Provenance envelope</div>
+        <div class="lbody">
+          <div class="chips"><span class="chip">vocabulary</span><span class="chip">meaning</span><span class="chip">source tier</span><span class="chip">observed at · age</span><span class="chip">not_answered</span></div>
+          No value reaches the model bare. Abstention is a required field.
+        </div>
+        <div class="ldec"><span class="tag-ours">Ours</span><a class="dref" href="#d10">D10</a></div>
+      </div>
+
+      <div class="layer ours">
+        <div class="lname"><small>L4 · Meaning</small>Semantic mapping layer</div>
+        <div class="lbody">
+          <div class="chips"><span class="chip">vocabulary registry</span><span class="chip">identifier resolution</span><span class="chip">derived quantities</span><span class="chip">source precedence</span><span class="chip">staleness rules</span></div>
+          Collision test in CI: a new colliding token fails the build.
+        </div>
+        <div class="ldec"><span class="tag-ours">Ours</span><a class="dref" href="#d9">D9</a></div>
+      </div>
+
+      <div class="layer safe">
+        <div class="lname"><small>L5 · Tools</small>MCP servers</div>
+        <div class="lbody">
+          <div class="chips"><span class="chip">schema-bound tools</span><span class="chip">OKS as resources</span><span class="chip">effect class: read · read-heavy · <s>subscribe</s> · <s>mutate</s></span></div>
+          Closed registry, written in-house. Free text from services is quoted and bounded.
+        </div>
+        <div class="ldec"><a class="dref" href="#d6">D6</a><a class="dref" href="#d7">D7</a><a class="dref" href="#d8">D8</a></div>
+      </div>
+
+      <div class="layer infra">
+        <div class="lname"><small>L6 · Transport</small>Data access</div>
+        <div class="lbody">
+          <div class="chips"><span class="chip">webis_server REST + SSE</span><span class="chip">P-BEAST client (Kerberos)</span><span class="chip no">IPC control plane</span></div>
+          <code>webis_server</code> is read-only unless started with <code>--writable</code> and returns 403 for writes.
+        </div>
+        <div class="ldec"><a class="dref" href="#d7">D7</a></div>
+      </div>
+
+      <div class="pair">
+        <div class="layer infra">
+          <div class="lname"><small>L7 · Source</small>TDAQ live services</div>
+          <div class="lbody"><div class="chips"><span class="chip">IS</span><span class="chip">OKS</span><span class="chip">ERS / MTS</span><span class="chip">RC</span><span class="chip">PMG</span><span class="chip">P-BEAST</span></div>Local test partition first, Point 1 later.</div>
+          <div class="ldec"></div>
+        </div>
+        <div class="layer infra">
+          <div class="lname"><small>L7 · Source</small>Replay fixtures</div>
+          <div class="lbody">Captured snapshots with the same schema.</div>
+          <div class="ldec"><a class="dref" href="#d13">D13</a></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="rails" aria-label="Cross-cutting components">
+      <div class="rail">
+        <p class="rail-k">Serves L1–L2</p>
+        <h4>Local open-weights LLM</h4>
+        Served on CERN hardware. Swappable; 2–3 models compared in evaluation.
+        <div class="ldec"><a class="dref" href="#d12">D12</a></div>
+      </div>
+      <div class="rail">
+        <p class="rail-k">Spans L1–L6</p>
+        <h4>Trace &amp; audit log</h4>
+        Every plan, agent step, tool call and envelope, keyed by agent and step.
+        <div class="ldec"><a class="dref" href="#d14">D14</a></div>
+      </div>
+      <div class="rail">
+        <p class="rail-k">Drives L7</p>
+        <h4>Replay &amp; evaluation harness</h4>
+        Snapshots, fault injection, per-agent report cards, and the semantic-layer ablation.
+        <div class="ldec"><a class="dref" href="#d13">D13</a></div>
+      </div>
+    </aside>
+  </div>
+  </div>
+  <p class="arch-note">Layers L1, L2, L5 and L6 follow published practice. L3 and L4 are where this project differs from every system in the reviewed literature.</p>
+</section>
+
+<!-- ============ WALKTHROUGH ============ -->
+<section id="walkthrough">
+  <p class="sec-k">One query, end to end</p>
+  <h2>"Why did TileCal stop?"</h2>
+  <p class="lede prose">WP1 showed that no single service can answer this. The useful answer comes from noticing that two services report the same word with different meanings.</p>
+  <ol class="flow">
+    <li><b>Route</b>Orchestrator sees a cross-service diagnosis and plans RC + PMG in parallel.</li>
+    <li><b>Resolve</b>"TileCal" → controller name and PMG process handle via <code>resolve_identifier</code>.</li>
+    <li><b>Retrieve</b>RC agent reads <code>RCStateInfo</code>; PMG agent reads process data, both via webis_server.</li>
+    <li class="hit"><b>Type</b>Semantic layer wraps each value with its vocabulary.
+      <div class="env">rc.fsm: INITIAL<br>"not configured for a run" · age 41 s</div>
+      <div class="env">pmg.process: RUNNING<br>"OS process alive" · age 5 s</div></li>
+    <li class="hit"><b>Compare</b>Orchestrator sees two consistent readings of two different things, not a contradiction.</li>
+  </ol>
+  <p class="answer"><b>Answer:</b> TileCal did not stop. It never finished starting: the process is alive and growing in memory, but the controller never left <code>INITIAL</code>. Hung startup, not a crash, so the remedy differs.</p>
+  <p class="prose" style="margin-top:14px;color:var(--ink-2);font-size:.95rem">Without layers L3–L4, the model receives two bare <code>state</code> strings and reports either "running" or "in INITIAL". Building the agent both ways is the core experiment (see <a href="#evaluation">Evaluation</a>).</p>
+</section>
+
+<!-- ============ DECISIONS ============ -->
+<section id="decisions">
+  <p class="sec-k">Design decisions</p>
+  <h2>Fourteen decisions and their evidence</h2>
+  <p class="lede prose">Each decision lists the evidence for it and the main alternative it rules out. Bracketed numbers point to the reference list; preprints and talks are tagged there.</p>
+
+  <div class="dgroup">
+    <h3>Scope</h3>
+    <div class="dgrid">
+      <article class="dec" id="d1">
+        <div class="dhead"><span class="did">D1</span><h4>Read-only diagnostic assistant. Humans decide and act.</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Agents remain weak at end-to-end remediation, while operator-assist systems have shown measurable gains in production. TDAQ already automates recovery through CHIP.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Agents resolve 11.4% of real SRE scenarios <a class="c" href="#ref-6">[6]</a>; best RCA agent solves 11.34% <a class="c" href="#ref-7">[7]</a>.</li>
+            <li>Operator-assist deployed 10 months at Alibaba: time to root cause −20.5% <a class="c" href="#ref-8">[8]</a>.</li>
+            <li>The ATLAS-wide assistant effort keeps decisions human-driven <a class="c" href="#ref-3">[3]</a>.</li>
+          </ul></dd>
+          <dt>Rejected</dt><dd>Autonomous mitigation as in <a class="c" href="#ref-9">[9]</a>, <a class="c" href="#ref-10">[10]</a>. The effect taxonomy (D7) leaves room to add it later.</dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+
+  <div class="dgroup">
+    <h3>Agents and orchestration</h3>
+    <div class="dgrid">
+      <article class="dec" id="d2">
+        <div class="dhead"><span class="did">D2</span><h4>One agent per service behind an orchestrator (5 + 1)</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Each agent sees a small tool set and one vocabulary. Failures stay isolated and can be attributed to one service.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Tool retrieval degrades on large tool sets and lowers task pass rate <a class="c" href="#ref-11">[11]</a>.</li>
+            <li>Orchestrator routing to per-team agents in production: triage accuracy up to 97%, time-to-engage −91% <a class="c" href="#ref-12">[12]</a>.</li>
+            <li>Specialised agents reduce context-switching errors <a class="c" href="#ref-13">[13]</a>; hub-and-spoke isolation blocks cross-app attacks <a class="c" href="#ref-14">[14]</a>.</li>
+            <li>Same pattern at a light source <a class="c" href="#ref-4">[4]</a> and at CMS <a class="c" href="#ref-15">[15]</a>.</li>
+          </ul></dd>
+          <dt>Rejected</dt><dd>One assistant holding every tool, as in GAIA <a class="c" href="#ref-2">[2]</a>. That suits one control system, not five services with colliding vocabularies.</dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d3">
+        <div class="dhead"><span class="did">D3</span><h4>Star topology with a fixed, hand-designed workflow</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Agents never talk to each other directly. On a live system, a predictable and auditable path is worth more than benchmark gains.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Coordination topologies (star, chain, tree, graph) compared in <a class="c" href="#ref-16">[16]</a>.</li>
+            <li>Dense agent chatter is costly: pruning communication cut tokens by up to 95% <a class="c" href="#ref-17">[17]</a>.</li>
+            <li>State-machine orchestration of specialised agents <a class="c" href="#ref-9">[9]</a>; practitioners report successful systems use explicit structure <a class="c" href="#ref-18">[18]</a>.</li>
+          </ul></dd>
+          <dt>Rejected</dt><dd>Automatically searched workflows and topologies <a class="c" href="#ref-19">[19]</a>, <a class="c" href="#ref-20">[20]</a>, <a class="c" href="#ref-21">[21]</a>. They improve benchmarks but produce designs that change and are harder to certify.</dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d4">
+        <div class="dhead"><span class="did">D4</span><h4>Orchestrator plans; service agents execute</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Simple questions go to one agent. Compound questions are decomposed, sent out in parallel, and composed.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Planner/executor separation: 57.58% on WebArena-Lite <a class="c" href="#ref-22">[22]</a>.</li>
+            <li>Plan-first orchestration ran multistage experiments on a production accelerator <a class="c" href="#ref-4">[4]</a>.</li>
+            <li>Complexity check → decompose → route to per-source MCP agents <a class="c" href="#ref-23">[23]</a>; query-dependent routing at 6–45% of the inference cost <a class="c" href="#ref-21">[21]</a>.</li>
+          </ul></dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d5">
+        <div class="dhead"><span class="did">D5</span><h4>ReAct inner loop with a round cap and explicit stop rules</h4></div>
+        <dl>
+          <dt>Why</dt><dd>ReAct is the standard tool-use loop, but it has no stopping rule of its own.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Reasoning interleaved with tool actions <a class="c" href="#ref-24">[24]</a>.</li>
+            <li>MCP-Bench caps the plan-execute-observe loop at 20 rounds <a class="c" href="#ref-25">[25]</a>.</li>
+            <li>In 1,642 multi-agent traces, step repetition (15.7%) and missing termination awareness (12.4%) are top failure modes <a class="c" href="#ref-26">[26]</a>.</li>
+          </ul></dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+
+  <div class="dgroup">
+    <h3>Protocol and safety</h3>
+    <div class="dgrid">
+      <article class="dec" id="d6">
+        <div class="dhead"><span class="did">D6</span><h4>MCP as the agent-to-service protocol</h4></div>
+        <dl>
+          <dt>Why</dt><dd>One protocol for five services. Its three primitives fit TDAQ: tools for live reads, resources for static OKS configuration, prompts for shifter procedures.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>MCP architecture, lifecycle and ecosystem analysed in <a class="c" href="#ref-27">[27]</a>; specification <a class="c" href="#ref-28">[28]</a>.</li>
+            <li>Top models exceed 98% schema compliance across 28 MCP servers <a class="c" href="#ref-25">[25]</a>; MCP-mediated evaluation methodology <a class="c" href="#ref-29">[29]</a>.</li>
+            <li>Schema-bound MCP for scientific instruments <a class="c" href="#ref-30">[30]</a>. Archi at CMS does not use MCP <a class="c" href="#ref-15">[15]</a>.</li>
+          </ul></dd>
+          <dt>Rejected</dt><dd>Bespoke per-subsystem integrations, as in <a class="c" href="#ref-15">[15]</a>.</dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d7">
+        <div class="dhead"><span class="did">D7</span><h4>Closed tool registry, read-only by construction</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Safety is enforced by the server and the transport, not by the prompt. Tools carry an effect class; only <code>read</code> and rate-limited <code>read-heavy</code> are exposed.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Poisoned tool metadata succeeds 72.8% of the time against o1-mini across 45 real servers <a class="c" href="#ref-31">[31]</a>.</li>
+            <li>MCP threat taxonomies: 16 scenarios <a class="c" href="#ref-27">[27]</a>; STRIDE/DREAD on 7 clients <a class="c" href="#ref-32">[32]</a>; multi-turn attacks <a class="c" href="#ref-33">[33]</a>; contextual integrity <a class="c" href="#ref-34">[34]</a>.</li>
+            <li>WP1: <code>webis_server</code> is read-only by default; <code>link_client</code> creates server state; <code>provider::command</code> is a hidden mutation.</li>
+          </ul></dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d8">
+        <div class="dhead"><span class="did">D8</span><h4>Service text is data, never instructions</h4></div>
+        <dl>
+          <dt>Why</dt><dd>ERS messages and process logs are free text written by thousands of applications. They reach the model only as quoted, length-bounded fields and cannot select tools.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Observation prompt injection reaches 84.3% average attack success; current defences are weak <a class="c" href="#ref-35">[35]</a>.</li>
+            <li>Masked re-execution defence <a class="c" href="#ref-36">[36]</a> is the fallback if raw text must be shown.</li>
+            <li>WP1: <code>procFiles</code> returns unbounded production text.</li>
+          </ul></dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+
+  <div class="dgroup">
+    <h3>Grounding and knowledge</h3>
+    <div class="dgrid">
+      <article class="dec ours" id="d9">
+        <div class="dhead"><span class="did">D9</span><h4>Semantic mapping layer between tools and agents</h4></div>
+        <dl>
+          <dt>Why</dt><dd>RC and PMG share six state tokens with different meanings. Schema validation catches malformed values; it does not catch a well-formed value with the wrong meaning. This layer types every value by vocabulary before the model sees it.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Making expert knowledge a first-class input reached AC@5 of 90% on real OS failures <a class="c" href="#ref-37">[37]</a>.</li>
+            <li>Structured knowledge grounding improves faithful reasoning <a class="c" href="#ref-38">[38]</a>. It grounds facts, not colliding vocabularies.</li>
+            <li>Unfamiliar real schemas drop agent success from 91.2% to 21.3% <a class="c" href="#ref-39">[39]</a>.</li>
+            <li><b>Gap:</b> none of the 60 screened peer-reviewed papers addresses state-vocabulary collision across services.</li>
+          </ul></dd>
+          <dt>Includes</dt><dd>Vocabulary registry, identifier resolution, derived quantities, source precedence, staleness rules, and a collision test in CI.</dd>
+        </dl>
+      </article>
+
+      <article class="dec ours" id="d10">
+        <div class="dhead"><span class="did">D10</span><h4>Provenance envelope with a mandatory <code>not_answered</code> field</h4></div>
+        <dl>
+          <dt>Why</dt><dd>A wrong answer at night costs more than no answer. Abstention has to be enforced by the output schema, because prompting does not reliably produce it.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Reasoning fine-tuning degrades abstention by 24% on average; system prompts help but do not fix it <a class="c" href="#ref-40">[40]</a>.</li>
+            <li>Explicit "defer / clarify" actions reduce tool hallucination <a class="c" href="#ref-41">[41]</a>; function-calling benchmarks now score abstention <a class="c" href="#ref-42">[42]</a>.</li>
+            <li>Coverage@Acc and Abstain ECE make abstention measurable <a class="c" href="#ref-43">[43]</a>.</li>
+          </ul></dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d11">
+        <div class="dhead"><span class="did">D11</span><h4>Documents through RAG; live state only through tools</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Procedures and manuals answer "how do I"; only live tools answer "what is the state now". Mixing them yields answers about TileCal taken from a wiki page.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>RAG for knowledge-intensive tasks <a class="c" href="#ref-44">[44]</a>; a CERN documentation chatbot already exists <a class="c" href="#ref-45">[45]</a>, so this project is the live-data complement.</li>
+            <li>SOP-guided RCA raised localisation accuracy from 35.5% to 64.0% <a class="c" href="#ref-46">[46]</a>; documents converted to workflows beat baselines on OpenRCA <a class="c" href="#ref-47">[47]</a>; reusable workflows +24.6% / +51.1% <a class="c" href="#ref-48">[48]</a>.</li>
+          </ul></dd>
+          <dt>So</dt><dd>Shifter procedures become MCP prompts that agents can discover.</dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+
+  <div class="dgroup">
+    <h3>Infrastructure</h3>
+    <div class="dgrid">
+      <article class="dec" id="d12">
+        <div class="dhead"><span class="did">D12</span><h4>Local open-weights model, treated as a swappable part</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Operational data stays on site. The model sits behind one interface, so 2–3 models can be compared.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Open-weights gpt-oss-120b scores 0.692 vs o3 0.715 on MCP-Bench <a class="c" href="#ref-25">[25]</a>.</li>
+            <li>Privacy-preserving log parsing with an 8B open model <a class="c" href="#ref-49">[49]</a>; on-premises stack at a production accelerator <a class="c" href="#ref-4">[4]</a>.</li>
+            <li>Local Mixtral at DESY <a class="c" href="#ref-2">[2]</a>; open-source LLM in the ATLAS effort <a class="c" href="#ref-3">[3]</a>.</li>
+          </ul></dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d13">
+        <div class="dhead"><span class="did">D13</span><h4>Replay harness with fault injection, sharing the tool schema</h4></div>
+        <dl>
+          <dt>Why</dt><dd>Repeatable tests without Point 1, and a regression suite that runs on every change.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Fault injection plus telemetry export for agent evaluation <a class="c" href="#ref-5">[5]</a>; 735 reproducible failure cases <a class="c" href="#ref-50">[50]</a>.</li>
+            <li>Curated initial state with programmatic verification <a class="c" href="#ref-51">[51]</a>.</li>
+            <li>Simulator sharing the schema layer with live adapters <a class="c" href="#ref-30">[30]</a>.</li>
+          </ul></dd>
+        </dl>
+      </article>
+
+      <article class="dec" id="d14">
+        <div class="dhead"><span class="did">D14</span><h4>Per-agent, per-step trace log</h4></div>
+        <dl>
+          <dt>Why</dt><dd>When a multi-agent answer is wrong, we need to know which agent and which step caused it.</dd>
+          <dt>Evidence</dt><dd><ul>
+            <li>Automatic failure attribution is hard: best method reaches 53.5% agent-level and 14.2% step-level accuracy <a class="c" href="#ref-52">[52]</a>. Logs must make it explicit.</li>
+            <li>Attribution and audit infrastructure for agents <a class="c" href="#ref-53">[53]</a>; event-stream design <a class="c" href="#ref-54">[54]</a>.</li>
+          </ul></dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RISKS ============ -->
+<section id="risks">
+  <p class="sec-k">What the literature warns about</p>
+  <h2>Known risks and how the design answers them</h2>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Risk</th><th>Evidence</th><th>Mitigation in this architecture</th></tr></thead>
+      <tbody>
+        <tr><td>Multi-agent systems fail often</td><td>41–86.7% failure rates; most failures come from system design and coordination <a class="c" href="#ref-26">[26]</a></td><td>Fixed star workflow (D3), round caps (D5), typed messages, per-agent traces (D14)</td></tr>
+        <tr><td>Inconsistent answers</td><td>pass@1 52.6% drops to pass^4 33.9% <a class="c" href="#ref-51">[51]</a>; pass^8 below 25% <a class="c" href="#ref-55">[55]</a></td><td>Deterministic tool layer; pass^k reported per agent</td></tr>
+        <tr><td>Confident wrong answers</td><td>Abstention does not improve with reasoning models <a class="c" href="#ref-40">[40]</a></td><td>Mandatory <code>not_answered</code> (D10); semantic typing (D9)</td></tr>
+        <tr><td>Tool poisoning, injection</td><td>72.8% <a class="c" href="#ref-31">[31]</a>; 84.3% <a class="c" href="#ref-35">[35]</a></td><td>Closed registry (D7); service text as data (D8)</td></tr>
+        <tr><td>Load on live services</td><td>WP1: unbounded fan-out calls; P-BEAST is lossy</td><td><code>read-heavy</code> class is rate-limited; replay-first development (D13)</td></tr>
+        <tr><td>Duplicating existing tools</td><td>CHIP and Shifter Assistant already consume ERS and IS <a class="c" href="#ref-1">[1]</a></td><td>Explain and diagnose only; read their subscriptions rather than duplicating them</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ EVALUATION ============ -->
+<section id="evaluation">
+  <p class="sec-k">How it will be judged</p>
+  <h2>Per-agent report cards, plus one ablation</h2>
+  <p class="lede prose">Five separate report cards, one per service agent, using established metrics where they exist. The central experiment builds the system twice: once with raw records and a prose system prompt, once with layers L3–L4. Both run on a vocabulary-collision test set.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Dimension</th><th>Metric</th><th>Basis</th></tr></thead>
+      <tbody>
+        <tr><td>Correctness</td><td>Accuracy against ground truth derived from OKS and IS snapshots</td><td>Project-specific</td></tr>
+        <tr><td>Abstention</td><td>Coverage@Acc at a high accuracy threshold; Abstain ECE</td><td><a class="c" href="#ref-43">[43]</a>, <a class="c" href="#ref-40">[40]</a></td></tr>
+        <tr><td>Consistency</td><td>pass^k on identical replayed input</td><td><a class="c" href="#ref-55">[55]</a>, <a class="c" href="#ref-51">[51]</a></td></tr>
+        <tr><td>Tool use</td><td>Schema compliance, tool validity, dependency compliance</td><td><a class="c" href="#ref-25">[25]</a>, <a class="c" href="#ref-42">[42]</a></td></tr>
+        <tr><td>Robustness</td><td>Injected faults, partial data, ambiguous and adversarial queries</td><td><a class="c" href="#ref-5">[5]</a>, <a class="c" href="#ref-35">[35]</a></td></tr>
+        <tr><td>Cost &amp; load</td><td>Latency per tier, tokens, queries per second on IS and P-BEAST</td><td><a class="c" href="#ref-56">[56]</a></td></tr>
+        <tr><td>Failure analysis</td><td>Failures labelled by MAST category and responsible agent</td><td><a class="c" href="#ref-26">[26]</a>, <a class="c" href="#ref-52">[52]</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="margin-top:16px;color:var(--ink-2);font-size:.95rem"><b style="font-family:var(--f-display)">Realistic expectations.</b> Comparable benchmarks report under 50% task success <a class="c" href="#ref-55">[55]</a>, 11–12% on root-cause analysis <a class="c" href="#ref-7">[7]</a>, <a class="c" href="#ref-6">[6]</a>, and around 30% on long workplace tasks <a class="c" href="#ref-57">[57]</a>. Targets should be set against these figures.</p>
+</section>
+
+<!-- ============ CONTRIBUTION ============ -->
+<section id="contribution">
+  <p class="sec-k">Positioning</p>
+  <h2>What is adopted and what is new</h2>
+  <div class="split">
+    <div class="panel">
+      <h3>Adopted from the literature</h3>
+      <ul>
+        <li>ReAct agents with RAG for documents <a class="c" href="#ref-24">[24]</a>, <a class="c" href="#ref-44">[44]</a></li>
+        <li>Orchestrator over specialised agents <a class="c" href="#ref-12">[12]</a>, <a class="c" href="#ref-4">[4]</a>, <a class="c" href="#ref-15">[15]</a></li>
+        <li>MCP as the tool protocol <a class="c" href="#ref-27">[27]</a>, <a class="c" href="#ref-30">[30]</a></li>
+        <li>Local open-weights inference <a class="c" href="#ref-2">[2]</a>, <a class="c" href="#ref-49">[49]</a></li>
+        <li>Replay and fault-injection evaluation <a class="c" href="#ref-5">[5]</a>, <a class="c" href="#ref-51">[51]</a></li>
+      </ul>
+    </div>
+    <div class="panel ours">
+      <h3>Contribution of this project</h3>
+      <ul>
+        <li><b>Semantic vocabulary collision</b> as a named failure mode for agents on mature, heterogeneous facilities, with a layer that makes it unrepresentable (D9–D10).</li>
+        <li>The first MCP framework over the five TDAQ live services, and MCP over distributed multi-service runtime infrastructure in general.</li>
+        <li>A <b>generalisation ledger</b>: how much of the framework survives reuse across five services, with predictions registered before WP3.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NEXT ============ -->
+<section id="next">
+  <p class="sec-k">Plan and decisions needed</p>
+  <h2>Build order and questions for supervisors</h2>
+  <div class="split">
+    <div style="min-width:0">
+      <h3>Build order</h3>
+      <ol class="steps">
+        <li>Vocabulary registry and collision test in CI <span class="mono">· unblocked</span></li>
+        <li>MCP server over replay fixtures with the provenance envelope <span class="mono">· unblocked</span></li>
+        <li>Validate webis_server and SSE on a local test partition <span class="mono">· needs partition</span></li>
+        <li>WP3: PMG agent as pilot, fixtures first, then live</li>
+        <li>WP4: RC, OKS, IS, ERS agents; record the generalisation ledger</li>
+        <li>Orchestrator with disagreement detection; run the ablation</li>
+      </ol>
+    </div>
+    <div style="min-width:0">
+      <h3>Questions for this meeting</h3>
+      <ul class="qs">
+        <li><b>ATLAS AI assistant programme.</b> Is this project a component of it, a parallel effort, or a prototype that feeds it <a class="c" href="#ref-3">[3]</a>?</li>
+        <li><b>Test partition access.</b> Validating webis_server is the single most valuable next step.</li>
+        <li><b>Inference hardware.</b> Which GPU allocation is available for a local model?</li>
+        <li><b>WP3 pilot.</b> Confirm PMG as the first agent.</li>
+        <li><b>Write actions.</b> Are they out of scope for good, or should the <code>mutate</code> class be designed now?</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REFERENCES ============ -->
+<section id="references">
+  <p class="sec-k">Evidence</p>
+  <h2>References</h2>
+  <div class="ev-note">
+    <b>How to read the evidence.</b> Sources tagged <span class="kind k-pr">peer-reviewed</span> come from the 60-paper screened set (peer-reviewed, 2025 or later) or are foundational works. Sources tagged <span class="kind k-pre">preprint / talk</span> are load-bearing for positioning but not peer-reviewed. "WP1" marks findings from this project's own source analysis. Many figures quoted here come from abstracts and venue pages; read those papers in full before quoting the figures in a paper.
+  </div>
+  <details class="refs" open>
+    <summary>57 references (IEEE, in order of first citation)</summary>
+    <ol class="reflist">
+<li id="ref-1">“Experience with Shifter Assistant: An intelligent tool to help operations of ATLAS TDAQ system in LHC Run 2,” <i>EPJ Web Conf., vol. 214, 01028 (CHEP 2018), 2019</i>. <a href="https://cds.cern.ch/record/2648925">https://cds.cern.ch/record/2648925</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-2">F. Mayet, “GAIA: A general AI assistant for intelligent accelerator operations,” <i>arXiv:2405.01359, 2024</i>. <a href="https://arxiv.org/abs/2405.01359">https://arxiv.org/abs/2405.01359</a><span class="kind k-pre">preprint / talk</span></li>
+<li id="ref-3">“AI assistant for ATLAS operations and beyond,” <i>AI RCS Strategy Workshop, CERN Indico event 1566094, Sep. 2025</i>. <a href="https://indico.cern.ch/event/1566094/">https://indico.cern.ch/event/1566094/</a><span class="kind k-pre">preprint / talk</span></li>
+<li id="ref-4">“Agentic artificial intelligence for multistage physics experiments at a large-scale user facility particle accelerator,” <i>Physical Review Research, vol. 8, L012017, 2026</i>. <a href="https://doi.org/10.1103/jtqy-9jz1">https://doi.org/10.1103/jtqy-9jz1</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-5">“AIOpsLab: A holistic framework to evaluate AI agents for enabling autonomous clouds,” <i>MLSys 2025</i>. <a href="https://arxiv.org/abs/2501.06706">https://arxiv.org/abs/2501.06706</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-6">“ITBench: Evaluating AI agents across diverse real-world IT automation tasks,” <i>ICML 2025 (oral)</i>. <a href="https://icml.cc/virtual/2025/poster/44303">https://icml.cc/virtual/2025/poster/44303</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-7">“OpenRCA: Can large language models locate the root cause of software failures?,” <i>ICLR 2025</i>. <a href="https://iclr.cc/virtual/2025/poster/32093">https://iclr.cc/virtual/2025/poster/32093</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-8">“Towards LLM-based failure localization in production-scale networks (BiAn),” <i>ACM SIGCOMM 2025</i>. <a href="https://dl.acm.org/doi/10.1145/3718958.3750505">https://dl.acm.org/doi/10.1145/3718958.3750505</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-9">“STRATUS: A multi-agent system for autonomous reliability engineering of modern clouds,” <i>NeurIPS 2025</i>. <a href="https://neurips.cc/virtual/2025/poster/116834">https://neurips.cc/virtual/2025/poster/116834</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-10">“Control industrial automation system with large language model agents,” <i>IEEE ETFA 2025</i>. <a href="https://arxiv.org/abs/2409.18009">https://arxiv.org/abs/2409.18009</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-11">“Retrieval models aren't tool-savvy: Benchmarking tool retrieval for large language models,” <i>Findings of ACL 2025</i>. <a href="https://aclanthology.org/2025.findings-acl.1258/">https://aclanthology.org/2025.findings-acl.1258/</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-12">“Triangle: Empowering incident triage with multi-agent,” <i>ASE 2025</i>. <a href="https://conf.researchr.org/details/ase-2025/ase-2025-papers/22/Triangle-Empowering-Incident-Triage-with-Multi-Agent">https://conf.researchr.org/details/ase-2025/ase-2025-papers/22/Triangle-Empowering-Incident-Triage-with-Multi-Agent</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-13">“Leveraging multi-agent framework for root cause analysis (MA-RCA),” <i>Complex &amp; Intelligent Systems, vol. 12, no. 1, 2026</i>. <a href="https://link.springer.com/article/10.1007/s40747-025-02096-0">https://link.springer.com/article/10.1007/s40747-025-02096-0</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-14">“IsolateGPT: An execution isolation architecture for LLM-based agentic systems,” <i>NDSS 2025</i>. <a href="https://ndss-symposium.org/ndss-paper/isolategpt-an-execution-isolation-architecture-for-llm-based-agentic-systems">https://ndss-symposium.org/ndss-paper/isolategpt-an-execution-isolation-architecture-for-llm-based-agentic-systems</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-15">P. Lugato et al., “Archi: Agentic operations at the CMS experiment,” <i>arXiv:2606.04755, 2026</i>. <a href="https://arxiv.org/abs/2606.04755">https://arxiv.org/abs/2606.04755</a><span class="kind k-pre">preprint / talk</span></li>
+<li id="ref-16">“MultiAgentBench: Evaluating the collaboration and competition of LLM agents,” <i>ACL 2025</i>. <a href="https://aclanthology.org/2025.acl-long.421/">https://aclanthology.org/2025.acl-long.421/</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-17">“G-Designer: Architecting multi-agent communication topologies via graph neural networks,” <i>ICML 2025 (spotlight)</i>. <a href="https://proceedings.mlr.press/v267/zhang25cu.html">https://proceedings.mlr.press/v267/zhang25cu.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-18">“Making sense of AI agents hype: Adoption, architectures, and takeaways from practitioners,” <i>IEEE Software, 2026</i>. <a href="https://arxiv.org/abs/2604.00189">https://arxiv.org/abs/2604.00189</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-19">“AFlow: Automating agentic workflow generation,” <i>ICLR 2025 (oral)</i>. <a href="https://iclr.cc/virtual/2025/oral/31731">https://iclr.cc/virtual/2025/oral/31731</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-20">“Automated design of agentic systems,” <i>ICLR 2025</i>. <a href="https://arxiv.org/abs/2408.08435">https://arxiv.org/abs/2408.08435</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-21">“Multi-agent architecture search via agentic supernet,” <i>ICML 2025 (oral)</i>. <a href="https://proceedings.mlr.press/v267/zhang25bi.html">https://proceedings.mlr.press/v267/zhang25bi.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-22">“Plan-and-Act: Improving planning of agents for long-horizon tasks,” <i>ICML 2025</i>. <a href="https://proceedings.mlr.press/v267/erdogan25a.html">https://proceedings.mlr.press/v267/erdogan25a.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-23">“AgentMaster: A multi-agent conversational framework using A2A and MCP protocols for multimodal information retrieval and analysis,” <i>EMNLP 2025 System Demonstrations</i>. <a href="https://arxiv.org/abs/2507.21105">https://arxiv.org/abs/2507.21105</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-24">S. Yao et al., “ReAct: Synergizing reasoning and acting in language models,” <i>ICLR 2023</i>. <a href="https://arxiv.org/abs/2210.03629">https://arxiv.org/abs/2210.03629</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-25">“MCP-Bench: Benchmarking tool-using LLM agents with complex real-world tasks via MCP servers,” <i>ICLR 2026</i>. <a href="https://arxiv.org/abs/2508.20453">https://arxiv.org/abs/2508.20453</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-26">“Why do multi-agent LLM systems fail?,” <i>NeurIPS 2025</i>. <a href="https://arxiv.org/abs/2503.13657">https://arxiv.org/abs/2503.13657</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-27">“Model Context Protocol (MCP): Landscape, security threats, and future research directions,” <i>ACM TOSEM, 2026</i>. <a href="https://dl.acm.org/doi/abs/10.1145/3796519">https://dl.acm.org/doi/abs/10.1145/3796519</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-28">“Anthropic, “Introducing the Model Context Protocol” and specification,” <i>Nov. 2024 (industry standard, not peer-reviewed)</i>. <a href="https://modelcontextprotocol.io/specification">https://modelcontextprotocol.io/specification</a><span class="kind k-pre">preprint / talk</span></li>
+<li id="ref-29">“MCP-AgentBench: Evaluating real-world language agent performance with MCP-mediated tools,” <i>AAAI 2026</i>. <a href="https://ojs.aaai.org/index.php/AAAI/article/view/40347">https://ojs.aaai.org/index.php/AAAI/article/view/40347</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-30">R. dos Reis and V. P. Dravid, “Schema-bound LLM control of scientific instrumentation through Model Context Protocol skills,” <i>arXiv:2607.17012, 2026</i>. <a href="https://arxiv.org/abs/2607.17012">https://arxiv.org/abs/2607.17012</a><span class="kind k-pre">preprint / talk</span></li>
+<li id="ref-31">“MCPTox: A benchmark for tool poisoning attack on real-world MCP servers,” <i>AAAI 2026</i>. <a href="https://ojs.aaai.org/index.php/AAAI/article/view/40895">https://ojs.aaai.org/index.php/AAAI/article/view/40895</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-32">“Model Context Protocol threat modeling and analysis of vulnerabilities to prompt injection with tool poisoning,” <i>J. Cybersecurity and Privacy, vol. 6, no. 3, 2026</i>. <a href="https://www.mdpi.com/2624-800X/6/3/84">https://www.mdpi.com/2624-800X/6/3/84</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-33">“MCP-SafetyBench: A benchmark for safety evaluation of large language models with real-world MCP servers,” <i>ICLR 2026</i>. <a href="https://arxiv.org/abs/2512.15163">https://arxiv.org/abs/2512.15163</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-34">“MCIP: Protecting MCP safety via Model Contextual Integrity Protocol,” <i>EMNLP 2025</i>. <a href="https://aclanthology.org/2025.emnlp-main.62/">https://aclanthology.org/2025.emnlp-main.62/</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-35">“Agent Security Bench (ASB): Formalizing and benchmarking attacks and defenses in LLM-based agents,” <i>ICLR 2025</i>. <a href="https://iclr.cc/virtual/2025/poster/29432">https://iclr.cc/virtual/2025/poster/29432</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-36">“MELON: Provable defense against indirect prompt injection attacks in AI agents,” <i>ICML 2025</i>. <a href="https://proceedings.mlr.press/v267/zhu25z.html">https://proceedings.mlr.press/v267/zhu25z.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-37">“When LLMs listen to experts: Accurate failure diagnosis in operating systems,” <i>ICSE 2026 SEIP</i>. <a href="https://conf.researchr.org/details/icse-2026/icse-2026-software-engineering-in-practice/3/When-LLMs-Listen-to-Experts-Accurate-Failure-Diagnosis-in-Operating-Systems">https://conf.researchr.org/details/icse-2026/icse-2026-software-engineering-in-practice/3/When-LLMs-Listen-to-Experts-Accurate-Failure-Diagnosis-in-Operating-Systems</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-38">“Think-on-Graph 2.0: Deep and faithful LLM reasoning with knowledge-guided retrieval augmented generation,” <i>ICLR 2025</i>. <a href="https://iclr.cc/virtual/2025/poster/28367">https://iclr.cc/virtual/2025/poster/28367</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-39">“Spider 2.0: Evaluating language models on real-world enterprise text-to-SQL workflows,” <i>ICLR 2025 (oral)</i>. <a href="https://iclr.cc/virtual/2025/poster/29294">https://iclr.cc/virtual/2025/poster/29294</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-40">“AbstentionBench: Reasoning LLMs fail on unanswerable questions,” <i>NeurIPS 2025 Datasets &amp; Benchmarks</i>. <a href="https://neurips.cc/virtual/2025/poster/121675">https://neurips.cc/virtual/2025/poster/121675</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-41">“Reducing tool hallucination via reliability alignment,” <i>ICML 2025</i>. <a href="https://proceedings.mlr.press/v267/xu25ap.html">https://proceedings.mlr.press/v267/xu25ap.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-42">“The Berkeley Function Calling Leaderboard (BFCL): From tool use to agentic evaluation of large language models,” <i>ICML 2025</i>. <a href="https://proceedings.mlr.press/v267/patil25a.html">https://proceedings.mlr.press/v267/patil25a.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-43">B. Wen et al., “Know your limits: A survey of abstention in large language models,” <i>Trans. ACL, vol. 13, pp. 529–556, 2025</i>. <a href="https://aclanthology.org/2025.tacl-1.26/">https://aclanthology.org/2025.tacl-1.26/</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-44">P. Lewis et al., “Retrieval-augmented generation for knowledge-intensive NLP tasks,” <i>NeurIPS 2020</i>. <a href="https://arxiv.org/abs/2005.11401">https://arxiv.org/abs/2005.11401</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-45">“AccGPT: A CERN knowledge retrieval chatbot,” <i>EPJ Web Conf., vol. 337, 01279 (CHEP 2024), 2025</i>. <a href="https://www.epj-conferences.org/articles/epjconf/abs/2025/22/epjconf_chep2025_01279/epjconf_chep2025_01279.html">https://www.epj-conferences.org/articles/epjconf/abs/2025/22/epjconf_chep2025_01279/epjconf_chep2025_01279.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-46">“Flow-of-Action: SOP enhanced LLM-based multi-agent system for root cause analysis,” <i>WWW 2025 Companion</i>. <a href="https://arxiv.org/abs/2502.08224">https://arxiv.org/abs/2502.08224</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-47">“RCAFlow: A workflow-informed hierarchical planning multi-agent system for root cause analysis,” <i>AAAI 2026</i>. <a href="https://ojs.aaai.org/index.php/AAAI/article/view/36991">https://ojs.aaai.org/index.php/AAAI/article/view/36991</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-48">“Agent workflow memory,” <i>ICML 2025</i>. <a href="https://proceedings.mlr.press/v267/wang25bx.html">https://proceedings.mlr.press/v267/wang25bx.html</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-49">“LibreLog: Accurate and efficient unsupervised log parsing using open-source large language models,” <i>ICSE 2025</i>. <a href="https://arxiv.org/abs/2408.01585">https://arxiv.org/abs/2408.01585</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-50">“RCAEval: A benchmark for root cause analysis of microservice systems with telemetry data,” <i>WWW 2025 Companion</i>. <a href="https://arxiv.org/abs/2412.17015">https://arxiv.org/abs/2412.17015</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-51">“MCPMark: A benchmark for stress-testing realistic and comprehensive MCP use,” <i>ICLR 2026</i>. <a href="https://iclr.cc/virtual/2026/poster/10006866">https://iclr.cc/virtual/2026/poster/10006866</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-52">“Which agent causes task failures and when? On automated failure attribution of LLM multi-agent systems,” <i>ICML 2025 (spotlight)</i>. <a href="https://icml.cc/virtual/2025/poster/45823">https://icml.cc/virtual/2025/poster/45823</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-53">“Infrastructure for AI agents,” <i>TMLR 2025</i>. <a href="https://openreview.net/forum?id=Ckh17xN2R2">https://openreview.net/forum?id=Ckh17xN2R2</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-54">“OpenHands: An open platform for AI software developers as generalist agents,” <i>ICLR 2025</i>. <a href="https://iclr.cc/virtual/2025/poster/29831">https://iclr.cc/virtual/2025/poster/29831</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-55">S. Yao et al., “τ-bench: A benchmark for tool-agent-user interaction in real-world domains,” <i>ICLR 2025</i>. <a href="https://arxiv.org/abs/2406.12045">https://arxiv.org/abs/2406.12045</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-56">“AI agents that matter,” <i>TMLR 2025</i>. <a href="https://mlanthology.org/tmlr/2025/kapoor2025tmlr-ai/">https://mlanthology.org/tmlr/2025/kapoor2025tmlr-ai/</a><span class="kind k-pr">peer-reviewed</span></li>
+<li id="ref-57">“TheAgentCompany: Benchmarking LLM agents on consequential real world tasks,” <i>NeurIPS 2025 Datasets &amp; Benchmarks</i>. <a href="https://neurips.cc/virtual/2025/poster/121705">https://neurips.cc/virtual/2025/poster/121705</a><span class="kind k-pr">peer-reviewed</span></li>
+</ol>
+  </details>
+</section>
+
+<footer>
+  DAQ-WP2 architecture overview · builds on WP1 service studies and the WP2 literature review · prepared with AI assistance; interpretive claims require review by the author.
+</footer>
+
+</div>
+</main>

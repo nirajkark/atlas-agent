@@ -1,5 +1,0 @@
-https://gitlab.cern.ch/atlas-tdaq-software/ers
-
-https://gitlab.cern.ch/atlas-tdaq-software/mts/https://gitlab.cern.ch/atlas-tdaq-software/ers
-
-https://gitlab.cern.ch/atlas-tdaq-software/mts/
